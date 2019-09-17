@@ -21,8 +21,17 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+
+#if ! defined(MAX_Nlist)
 #define MAX_Nlist 40
-#define MAX_requetes 20
+#endif
+int XC_get_MAX_Nlist() { return MAX_Nlist ; }
+
+#if !defined(MAX_requetes)
+#define MAX_requetes 40
+#endif
+int XC_get_MAX_requetes() { return MAX_requetes ; }
+
 #define Abs(x) (((x) < 0) ? -(x) : x)
 /* #if defined (DEBUG) */
 #define dbprint fprintf

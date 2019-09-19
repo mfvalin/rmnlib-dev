@@ -43,12 +43,12 @@
 #include <convert_ip.h>
 
 #if ! defined(MAX_Nlist)
-#define MAX_Nlist 40
+#define MAX_Nlist 50
 #endif
 int XC_get_MAX_Nlist() { return MAX_Nlist ; }   // allow application to get the internal limit for list sizes
 
 #if !defined(MAX_requetes)
-#define MAX_requetes 40
+#define MAX_requetes 50
 #endif
 int XC_get_MAX_requetes() { return MAX_requetes ; }   // allow application to get the internal limit for number of directives
 

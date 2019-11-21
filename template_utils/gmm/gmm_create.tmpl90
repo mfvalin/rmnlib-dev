@@ -21,6 +21,7 @@
 
 !!===================== gmm_create (interface) =====================
 !
+
 #ifdef INTERFACEONLY
       interface gmm_create
 !!@LOOP
@@ -84,7 +85,6 @@
     data inan8 /Z'7FF0000000000001'/
 
    
-
    if (present(flags_arg)) then
     field_meta%a%flags = flags_arg
    else
@@ -228,9 +228,10 @@
          return
       endif
 !    write(6,'(a,a8,a,i4,a,i4,a,i4,a,i10)') 'Debug+++ gmm_create creation name=',lcl_name,' cur_page=',cur_page,' cur_entry=',cur_entry,' index=',directory(cur_page)%entry(cur_entry)%pointer_table_index,' addr=',get_address_from(p) 
-      directory(cur_page)%entry(cur_entry)%array_addr = get_address_from(p)
+!       directory(cur_page)%entry(cur_entry)%array_addr = get_address_from(p)
       ier = add_table_entry(p, key)
    endif
+   directory(cur_page)%entry(cur_entry)%array_addr = get_address_from(p)
    field_meta%l = directory(cur_page)%entry(cur_entry)%l
    field_meta%a = directory(cur_page)%entry(cur_entry)%a
 !    Cat(gmm_ptrs, EXTENSION,)(directory(cur_page)%entry(cur_entry)%f => p

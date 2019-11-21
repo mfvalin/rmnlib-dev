@@ -40,6 +40,12 @@
 !!@END
       end interface
       
+      interface gmm_delete_name_only
+      integer function gmm_delete_name_only(iname)
+      character(len=*), intent(in) :: iname 
+      end function gmm_delete_name_only
+      end interface
+      
       interface gmm_delete
       integer function gmm_delete(iname)
       character(len=*), intent(in) :: iname 
@@ -152,6 +158,36 @@
     return
   endif
   end function gmm_delete
+!
+
+  integer function gmm_delete_name_only(iname)
+  use gmm_internals
+  implicit none
+  character(len=*), intent(in) :: iname 
+  include 'gmm_directory_interface.inc'
+  integer*8 :: key
+  integer :: datatype
+
+  key = 0
+  call check_directory_entry(iname,key)
+  if(cur_page .eq. 0 .or. cur_entry .eq. 0) then  ! quick check using key was not successful
+    call find_directory_entry(iname,key)
+  endif
+  if(cur_page .eq. 0 .or. cur_entry .eq. 0) then   ! variable not found
+    key= GMM_KEY_NOT_FOUND
+    gmm_delete_name_only = GMM_VAR_NOT_FOUND
+    return
+  else
+    datatype = directory(cur_page)%entry(cur_entry)%data_type
+    directory(cur_page)%entry(cur_entry)%name = 'Variable deleted upon request' 
+    directory(cur_page)%entry(cur_entry)%l = GMM_NULL_LAYOUT ! invalid layout
+    directory(cur_page)%entry(cur_entry)%a = GMM_NULL_ATTRIB ! null attributes
+    directory(cur_page)%entry(cur_entry)%array_addr = 0      ! null address
+    deleted_entries = deleted_entries + 1
+    gmm_delete_name_only = GMM_OK
+    return
+  endif
+  end function gmm_delete_name_only
 !
 
 #undef EXTENSION

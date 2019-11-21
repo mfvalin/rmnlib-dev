@@ -24,7 +24,10 @@
    integer :: cur_entry=0           ! temporary, set by add_directory_entry
    integer :: last_entry=PAGE_SIZE  ! last entry in last page
    integer :: file_unit=0
+   integer :: file_unit2=0
    logical :: restart_mode=.false.
+   logical :: duplicate=.false.
+
    integer :: ordinal=0             ! total number of array creations
    integer :: gmm_verbose_level = 0
  end module gmm_internals

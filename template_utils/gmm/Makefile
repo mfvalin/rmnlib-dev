@@ -168,6 +168,9 @@ tarball: $(FICHIERS) Makefile
 
 obj: $(OBJECTS)
 
+test_gmm:
+	s.f90 test_pointers2.F90 ./${EC_ARCH}/lib_local.a -lrmn -o test_gmm
+
 gen_ec_arch_dir:
 #Creer le repertoire $EC_ARCH 
 	mkdir -p ./$(EC_ARCH)
@@ -198,4 +201,4 @@ veryclean:
 	rm -f gmm_checkpoint.ftn90 gmm_create.ftn90 gmm_get.ftn90 gmm_pointer_table.ftn90 \
 	      gmm_update_pti.ftn90
 	rm -f libgmm_*.a gmm_restart gmm.inc 
-	rm -rf .fo
+	rm -rf .fo a.out test_gmm

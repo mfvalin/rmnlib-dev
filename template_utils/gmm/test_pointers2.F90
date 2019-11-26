@@ -1,5 +1,4 @@
-    
-    program test_pointers
+program test_pointers
     implicit none
 
 #include 'gmm.hf'
@@ -236,7 +235,7 @@
     end
 
   subroutine schacid
-    include 'gmm.cdk'
+#include 'gmm.hf'
     integer, parameter :: NUMBER_OF=2
     integer i,j
     real*4,dimension(:,:),pointer:: ptri42dx
@@ -278,7 +277,7 @@
   end subroutine schacid
 
     subroutine schacid2
-    include 'gmm.cdk'
+#include 'gmm.hf'
     integer, parameter :: NUMBER_OF=2
 
 

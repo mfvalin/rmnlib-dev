@@ -61,13 +61,12 @@ program test_pointers
     varname = 'R2D2'
     ier = gmm_create(varname,myarray,mon_meta)
   endif
-    print *,'size of R2D2 is ',size(myarray)
-    print *,'shape of R2D2 is ',shape(myarray)
-    print *,'lbound of R2D2 is ',lbound(myarray)
-    print *,'ubound of R2D2 is ',ubound(myarray)
-   call gmm_dumpinfo()
-    print *, '================================================'
-    print *
+  print *,'size of R2D2 is ',size(myarray)
+  print *,'shape of R2D2 is ',shape(myarray)
+  print *,'lbound of R2D2 is ',lbound(myarray)
+  print *,'ubound of R2D2 is ',ubound(myarray)
+  call gmm_dumpinfo()
+  print *, '================================================'
    
    allocate(myarray2(lx%low:lx%high,ly%low:ly%high))
    ier = gmm_create('R2D2a',myarray2,mon_meta)
@@ -76,8 +75,15 @@ program test_pointers
    print *,'lbound of R2D2a is ',lbound(myarray2)
    print *,'ubound of R2D2a is ',ubound(myarray2)
    call gmm_dumpinfo()
-   do i = 1, 10240
-!     ier = gmm_delete_name_only('R2D2a')
+   print *, '================================================'
+   do i = 1, 4096
+    ier = gmm_delete_name_only('R2D2a')
+    ier = gmm_create('R2D2a',myarray2,mon_meta)
+   enddo
+   print *,'apres gmm_delete_name_only'
+   call gmm_dumpinfo()
+   print *, '================================================'
+   do i = 1, 8192
     ier = gmm_delete('R2D2a')
     if(i==1 .or. i==10240) call gmm_dumpinfo()
     allocate(temparray(i))
@@ -85,6 +91,7 @@ program test_pointers
     deallocate(temparray)
     ier = gmm_create('R2D2a',myarray2,mon_meta)
    enddo
+   print *,'apres gmm_delete'
    call gmm_dumpinfo()
    print *, '================================================'
    print *

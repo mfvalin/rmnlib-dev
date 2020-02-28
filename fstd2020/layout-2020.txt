@@ -1,0 +1,143 @@
+
+               Random Segmented Files  (preliminary design) (2020/02/29)
+
+  tentative new format to be used for next generation "RPN standard" files
+
+  base record metadata will be identical to actual "RPN standard" file metadata to provide
+  initial functional backward compatibility
+
+  supplementary(extensible) metadata will provide further meta information (search and non-search)
+
+
+
+
+
+  segmented file layout : a segmented file is a sequential (indexable) suite of records
+                          each record is a sequence of 32 bit elements (BIG or LITTLE ENDIAN)
+
+  it is valid for a file to contain records having a different endianness
+
+  <-------------------- segment 0 -------------------->   <-------------------- segment N -------------------->
+  +--------+------+--------+------+-----------+-------+   +--------+------+--------+------+-----------+-------+
+  | S O S  | data | ...... | data | directory | E O S |...| S O S  | data | ...... | data | directory | E O S | ....
+  +--------+------+--------+------+-----------+-------+   +--------+------+--------+------+-----------+-------+
+   ^                                              |       ^                                              |       
+   +-----------------------------------------<----+       +-----------------------------------------<----+
+   ^                                                                                                     |
+   +-----------------------------------------<---------------------- fused case --------------------<----+
+
+   S O S : Start Of Segment
+   E O S : End Of Segment (contains "pointer" to beginning of segment or beginning of 1st segment in file
+   segments may get fused in which case the directory of the last segment would cover the whole file
+   concatenated files are a VALID segmented file
+
+
+   Start Of Segment (S O S) (3 64 bit elements)
+
+        LNG        META        SIGN        META         LNG
+   +------------+----------+------------+----------+------------+
+   | 0x00000001 | metadata | 'APPLSRF0' | metadata | 0x00000001 |
+   +------------+----------+------------+----------+------------+
+      32 bits      32 bits    64 bits      32 bits    32 bits
+
+   LNG   length (coded) 1 = 1 8 byte element in record
+   META  record metadata (also used as endianness indicator) 0xAABBCC00 (upper 8 bits AA MUST BE 0x03)
+   SIGN  file type signature (APPL is FsTd for "RPN standard" files)
+         this 64 bit element is a sequence of Bytes, not subject to endianness
+         byte 4 is 0 in little endian files, byte 7 is 0 in big endian files
+         bytes 4 and 7 MAY NOT BE BOTH 0
+
+
+
+
+   End Of Segment (E O S) (3 64 bit elements)
+
+        LNG        META               SEGL            META         LNG
+   +------------+----------+-----------------------+----------+------------+
+   | 0x00000001 | metadata | 0xNNNNNNNN 0xNNNNNNNN | metadata | 0x00000001 |
+   +------------+----------+-----------------------+----------+------------+
+      32 bits      32 bits         2 x 32 bits        32 bits    32 bits
+
+   LNG   length (coded) 1 = 1 8 byte element in record
+   META  record metadata (also used as endianness indicator) 0xAABBCC00 (upper 8 bits AA MUST BE 0x03)
+   SEGL  length of segment in BYTES, including S O S and E O S 
+         (2 consecutive 32 bit tokens, upper 32 bits, then lower 32 bits [endianness])
+         S O S position = position following E O S - SEGL
+
+
+   Data record
+
+        LNG        META        data payload       META         LNG
+   +------------+----------+                   +----------+------------+
+   | 0xZZZZZZZZ | metadata | ................. | metadata | 0xZZZZZZZZ |
+   +------------+----------+                   +----------+------------+
+      32 bits      32 bits                        32 bits    32 bits
+
+   LNG   length (coded) (length of data part only)
+         upper 4 bits 0bbb  : lower 31 bits = length in    8 byte units ( 0->16GB)
+         upper 4 bits 10bb  : lower 30 bits = length in   64 byte units ( 0->64GB)
+         upper 4 bits 110b  : lower 29 bits = length in  512 byte units ( 0->256GB)
+         upper 4 bits 1110  : lower 28 bits = length in 4096 byte units ( 0->1TB)
+   META  record metadata (also used as endianness indicator) 0xAABBCC00 (upper 8 bits AA MAY NOT BE 0)
+         AA is record type 0 : invalid, 1 : data, 2 : directory, 3: S O S, 4 : E O S
+
+
+   Directory record
+
+        LNG        META          directory        META         LNG
+   +------------+----------+                   +----------+------------+
+   | 0xZZZZZZZZ | metadata | ................. | metadata | 0xZZZZZZZZ |
+   +------------+----------+                   +----------+------------+
+      32 bits      32 bits                        32 bits    32 bits
+
+   LNG   length of payload(see Data record)
+   META  (see Data record)
+   directory will cover this segment or ALL previous segments (fused segments)
+   directory entries contain position, length, and metadata for record
+   record position(address) is relative to position(address) of beginning of segment (S O S)
+   record length uses the same coding as for data record
+
+
+   compatible metadata (to preserve old API usage when possible)
+     search metadata  (FIXED, mandatory)
+      datev  (old style)
+      ip1    (lower 4 bits masked)
+      ip2    (lower 4 bits masked)
+      ip3    (lower 4 bits masked)
+      typvar (first 2 only, rest masked)
+      nomvar (first 4 only, rest masked)
+      etiket (first 12 only, rest masked)
+     informative metadata (FIXED, mandatory)
+      deet (lower 24 bits only)  (in seconds)
+      npas (lower 26 bits only)
+      ni   (lower 24 bits only)
+      nj   (lower 24 bits only)
+      nk   (lower 20 bits only)
+      dtyp
+      nbits
+      grtyp (first 1 only)
+      ig1  (lower 24 bits only)
+      ig2  (lower 24 bits only)
+      ig3  (lower 24 bits only)
+      ig4  (lower 24 bits only)
+
+   new metadata
+     search metadata (variable with mandatory items ?)
+      dateo   full 64 bits in micro/nano seconds
+      ip1/2/3 extended to full 32 bits (4 extra bits for mantissa)
+      typvar  extended to 4/5 characters ? case sensitivity ?
+      nomvar  extended to 5 characters ? case sensitivity ?
+      etiket  extended to 20 characters ? case sensitivity ?
+      type+float  how many pairs (TPn/FPn/UPn) (Type/Float/Unsigned)
+     informative metadata (variable with mandatory items ?)
+      deet    extended to full 32 bits (with LNG style encoding) (0bb 10b 110)
+      npas    extended to full 32 bits
+      dtyp
+      nbits
+      grtyp (extended to ? characters)
+      ig1/2/3/4 (extended to 32 bits)
+      extra geoloc  TBD
+
+
+
+

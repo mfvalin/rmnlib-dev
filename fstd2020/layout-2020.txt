@@ -31,6 +31,7 @@
    segments may get fused in which case the directory of the last segment would cover the whole file
    concatenated files are a VALID segmented file
 
+   ===================================================================================================
 
    Start Of Segment (S O S) (3 64 bit elements)
 
@@ -47,8 +48,19 @@
          byte 4 is 0 in little endian files, byte 7 is 0 in big endian files
          bytes 4 and 7 MAY NOT BE BOTH 0
 
+     ZR        LNG         RT    SIGN        RT        LNG         ZR
+   +----+----------------+----+------------+----+----------------+----+
+   |0x00| 0x000000000003 |0x03| 'APPLSRF0' |0x03| 0x000000000003 |0x00|
+   +----+----------------+----+------------+----+----------------+----+
+   8 bits     48 bits    8 bits  64 bits   8 bits     48 bits    8 bits
 
+   LNG   length      : 3 64 bit elements
+   ZR    zero byte   : used as endianness detector
+   RT    record type : 3 (Start Of Segment)
+   SIGN  file type signature (APPL is FsTd for "RPN standard" files)
+   Note: RT == 0 is ILLEGAL
 
+   ===================================================================================================
 
    End Of Segment (E O S) (3 64 bit elements)
 
@@ -64,6 +76,19 @@
          (2 consecutive 32 bit tokens, upper 32 bits, then lower 32 bits [endianness])
          S O S position = position following E O S - SEGL
 
+     ZR        LNG         RT          SEGL           RT        LNG         ZR
+   +----+----------------+----+---------------------+----+----------------+----+
+   |0x00| 0x000000000003 |0x04| 0xZZZZZZZZZZZZZZZZ  |0x04| 0x000000000003 |0x00|
+   +----+----------------+----+---------------------+----+----------------+----+
+   8 bits     48 bits    8 bits       64 bits       8 bits     48 bits    8 bits
+
+   LNG   length      : 3 64 bit elements
+   ZR    zero byte   : used as endianness detector
+   RT    record type : 4 (End Of Segment)
+   SEGL  length of segment in BYTES, including S O S and E O S 
+   Note: RT == 0 is ILLEGAL
+
+   ===================================================================================================
 
    Data record
 
@@ -81,6 +106,19 @@
    META  record metadata (also used as endianness indicator) 0xAABBCC00 (upper 8 bits AA MAY NOT BE 0)
          AA is record type 0 : invalid, 1 : data, 2 : directory, 3: S O S, 4 : E O S
 
+     ZR        LNG         RT      data payload       RT        LNG         ZR
+   +----+----------------+----+                     +----+----------------+----+
+   |0x00| 0xZZZZZZZZZZZZ |0x01| ..................  |0x01| 0xZZZZZZZZZZZZ |0x00|
+   +----+----------------+----+                     +----+----------------+----+
+   8 bits     48 bits    8 bits                     8 bits     48 bits    8 bits
+
+   LNG   length      : in 64 bit elements
+   ZR    zero byte   : used as endianness detector
+   RT    record type : 1 (data)
+   Note: RT == 0 is ILLEGAL
+
+
+   ===================================================================================================
 
    Directory record
 
@@ -97,6 +135,18 @@
    record position(address) is relative to position(address) of beginning of segment (S O S)
    record length uses the same coding as for data record
 
+     ZR        LNG         RT        directory        RT        LNG         ZR
+   +----+----------------+----+                     +----+----------------+----+
+   |0x00| 0xZZZZZZZZZZZZ |0x01| ..................  |0x01| 0xZZZZZZZZZZZZ |0x00|
+   +----+----------------+----+                     +----+----------------+----+
+   8 bits     48 bits    8 bits                     8 bits     48 bits    8 bits
+
+   LNG   length      : in 64 bit elements
+   ZR    zero byte   : used as endianness detector
+   RT    record type : 1 (data)
+   Note: RT == 0 is ILLEGAL
+
+   ===================================================================================================
 
    compatible metadata (to preserve old API usage when possible)
      search metadata  (FIXED, mandatory)

@@ -3,13 +3,15 @@
 
   tentative new format to be used for next generation "RPN standard" files
 
-  base record metadata will be identical to actual "RPN standard" file metadata to provide
+  basic mandatory record metadata will be identical to actual "RPN standard" file metadata to provide
   initial functional backward compatibility
 
   supplementary(extensible) metadata will provide further meta information (search and non-search)
 
+  endianness is on a record by record basis (file may contain records of different endianness)
 
 
+   ===================================================================================================
 
 
   segmented file layout : a segmented file is a sequential (indexable) suite of records
@@ -21,10 +23,10 @@
   +--------+------+--------+------+-----------+-------+   +--------+------+--------+------+-----------+-------+
   | S O S  | data | ...... | data | directory | E O S |...| S O S  | data | ...... | data | directory | E O S | ....
   +--------+------+--------+------+-----------+-------+   +--------+------+--------+------+-----------+-------+
-   ^                                              |       ^                                              |       
-   +-----------------------------------------<----+       +-----------------------------------------<----+
-   ^                                                                                                     |
-   +-----------------------------------------<---------------------- fused case --------------------<----+
+   ^                                              |        ^                                              |       
+   +-----------------------------------------<----+        +-----------------------------------------<----+
+   ^                                                                                                      |
+   +-----------------------------------------<----------------------- fused case --------------------<----+
 
    S O S : Start Of Segment
    E O S : End Of Segment (contains "pointer" to beginning of segment or beginning of 1st segment in file
@@ -112,11 +114,11 @@
    +----+----------------+----+                     +----+----------------+----+
    8 bits     48 bits    8 bits                     8 bits     48 bits    8 bits
 
-   LNG   length      : in 64 bit elements
+   LNG   length      : in 64 bit elements (0 -> 2 PBytes)
    ZR    zero byte   : used as endianness detector
    RT    record type : 1 (data)
    Note: RT == 0 is ILLEGAL
-
+   data payload is a sequence of 32 bit items
 
    ===================================================================================================
 
@@ -145,6 +147,11 @@
    ZR    zero byte   : used as endianness detector
    RT    record type : 1 (data)
    Note: RT == 0 is ILLEGAL
+   directory is a sequence of 32 bit items
+
+   ===================================================================================================
+
+   Directory structure
 
    ===================================================================================================
 

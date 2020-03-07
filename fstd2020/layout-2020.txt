@@ -56,6 +56,13 @@
    +----+----------------+----+------------+----+----------------+----+
    8 bits     48 bits    8 bits  64 bits   8 bits     48 bits    8 bits
 
+
+         LNG       ZR             RT      SIGN         SIGN      ZR             RT       LNG
+   +-------------+----+---------+----+------------+------------+----+---------+----+-------------+
+   |  0x00000003 |0x00| 0x0000  |0x03|   'APPL'   |   'SRF0'   |0x00| 0x0000  |0x03|  0x00000003 |
+   +-------------+----+---------+----+------------+------------+----+---------+----+-------------+
+       32 bits   8 bits 16 bits 8 bits   32 bits      32 bits  8 bits 16 bits 8 bits   32 bits
+
    LNG   length      : 3 64 bit elements
    ZR    zero byte   : used as endianness detector
    RT    record type : 3 (Start Of Segment)
@@ -84,10 +91,17 @@
    +----+----------------+----+---------------------+----+----------------+----+
    8 bits     48 bits    8 bits       64 bits       8 bits     48 bits    8 bits
 
+
+         LNG       ZR             RT            SEGL             ZR             RT       LNG
+   +-------------+----+---------+----+------------+------------+----+---------+----+-------------+
+   |  0x00000003 |0x00| 0x0000  |0x04|  SEGL(lo)  |  SEGL(hi)  |0x00| 0x0000  |0x04|  0x00000003 |
+   +-------------+----+---------+----+------------+------------+----+---------+----+-------------+
+       32 bits   8 bits 16 bits 8 bits  32 bits      32 bits   8 bits 16 bits 8 bits   32 bits
+
    LNG   length      : 3 64 bit elements
    ZR    zero byte   : used as endianness detector
    RT    record type : 4 (End Of Segment)
-   SEGL  length of segment in BYTES, including S O S and E O S 
+   SEGL  length of segment in BYTES, including S O S and E O S ( SEGL(lo) | ( SEGL(hi) << 32 ) )
    Note: RT == 0 is ILLEGAL
 
    ===================================================================================================
@@ -114,7 +128,14 @@
    +----+----------------+----+                     +----+----------------+----+
    8 bits     48 bits    8 bits                     8 bits     48 bits    8 bits
 
-   LNG   length      : in 64 bit elements (0 -> 2 PBytes)
+
+                   ZR             RT      data payload       ZR             RT
+   +-------------+----+---------+----+                     +----+---------+----+-------------+
+   |   LNG(lo)   |0x00| LNG(hi) |0x01| ..................  |0x00| LNG(hi) |0x01|   LNG(lo)   |
+   +-------------+----+---------+----+                     +----+---------+----+-------------+
+       32 bits   8 bits 16 bits 8 bits                     8 bits 16 bits 8 bits    32 bits
+
+   LNG   length      : in 64 bit elements (0 -> 2 PBytes) = LNG(lo) | ( LNG(hi)<<32 )
    ZR    zero byte   : used as endianness detector
    RT    record type : 1 (data)
    Note: RT == 0 is ILLEGAL
@@ -143,9 +164,16 @@
    +----+----------------+----+                     +----+----------------+----+
    8 bits     48 bits    8 bits                     8 bits     48 bits    8 bits
 
-   LNG   length      : in 64 bit elements
+
+                   ZR             RT       directory         ZR             RT
+   +-------------+----+---------+----+                     +----+---------+----+-------------+
+   |     LNG     |0x00| 0x0000  |0x02| ..................  |0x00| 0x0000  |0x02|     LNG     |
+   +-------------+----+---------+----+                     +----+---------+----+-------------+
+       32 bits   8 bits 16 bits 8 bits                     8 bits 16 bits 8 bits    32 bits
+
+   LNG   length      : in 64 bit elements 
    ZR    zero byte   : used as endianness detector
-   RT    record type : 1 (data)
+   RT    record type : 2 (directory block)
    Note: RT == 0 is ILLEGAL
    directory is a sequence of 32 bit items
 

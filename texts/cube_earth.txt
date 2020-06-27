@@ -1,5 +1,4 @@
 
-
 total of 6 * (M+1) * (M+1) PEs
 
 M+1 : max number of PEs along a cube edge
@@ -12,9 +11,9 @@ cube edge map
 
 > and < facing each other means axis reversal
 
-                                    (x,0,6)>
+                                  (M-x,M,3)<
                                +---------------+
-                               |    (x,M,5)>   |
+                               |  ( x ,M,5)>   |
                                |               |
                      (M-y,M,4)<|>(0,y,5)       |
                                |               |
@@ -22,7 +21,7 @@ cube edge map
                                |               |
                                |       (M,y,5)>|>(y,M,2)
                                |               |
-                   (0,M-x,5)<  |    (x,0,5)>   |    (M,x,5)>      (M-x,M,6)<
+                   (0,M-x,5)<  |    (x,0,5)>   |    (M,x,5)>      (M-x,M,5)<
                +---------------+---------------+---------------+---------------+
                |   (x, M ,4)>  |    (x,M,1)>   |    (x,M,2)>   |    (x,M,3)>   |
                |               |               |               |               |
@@ -42,9 +41,9 @@ cube edge map
                                |               |
                                |       (M,y,6)>|<(M-y,2,2)
                                |               |
-                               |    (x,0,6)>   |
+                               |  ( x ,0,6)>   |
                                +---------------+
-                                    (x,M,5)>
+                                  (M-x,0,3)<
 
 PE coordinates inside cube face
 
@@ -58,7 +57,5 @@ PE coordinates inside cube face
                +---------------+
                ---------------->
                0    X axis     M
-
-
 
 ===========                                    

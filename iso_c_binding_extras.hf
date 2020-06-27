@@ -1,0 +1,52 @@
+! * RMNLIB - Library of routines for C and FORTRAN programming
+! * Copyright (C) 2020  Division de Recherche en Prevision Numerique
+! *                     Environnement Canada
+! *
+! * This library is free software; you can redistribute it and/or
+! * modify it under the terms of the GNU Lesser General Public
+! * License as published by the Free Software Foundation,
+! * version 2.1 of the License.
+! *
+! * This library is distributed in the hope that it will be useful,
+! * but WITHOUT ANY WARRANTY; without even the implied warranty of
+! * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+! * Lesser General Public License for more details.
+! *
+! * You should have received a copy of the GNU Lesser General Public
+! * License along with this library; if not, write to the
+! * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+! * Boston, MA 02111-1307, USA.
+!
+! extra definitions of types and macros to interface with C code
+! and libc
+!
+#if defined(NO_C_BINDING_EXTRAS)
+  integer, parameter :: C_TIME_T = 8
+  integer, parameter :: C_SUSECONDS_T = 8
+  integer, parameter :: C_CLOCK_T = 4
+  integer, parameter :: C_CLOCKS_PER_SEC = 1000000
+#else
+#include <c_binding_extras.hf>
+#endif
+
+type, bind(C) :: timeval
+  integer(C_TIME_T) :: tv_sec
+  integer(C_SUSECONDS_T) :: tv_usec
+end type
+type, bind(C) :: timezone
+  integer(C_INT) :: tz_minuteswest
+  integer(C_INT) :: tz_dsttime
+end type
+interface
+  ! tz will often be C_NULL_PTR
+  function c_gettimeofday(tv, tz) result(ok) BIND(C,name='gettimeofday')
+    import :: C_PTR, timeval, C_INT
+    type(timeval), intent(OUT) :: tv
+    type(C_PTR), intent(IN), value :: tz
+    integer(C_INT) :: ok
+  end function c_gettimeofday
+  function c_clock() result(time) bind(C,name='clock')
+    import :: C_CLOCK_T
+    integer(C_CLOCK_T) :: time
+  end function c_clock
+end interface

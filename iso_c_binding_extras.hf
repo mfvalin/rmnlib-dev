@@ -70,9 +70,13 @@ integer, parameter :: PATH_MAX = 4096
   integer, parameter :: STDOUT_FILENO = 1
   integer, parameter :: STDERR_FILENO = 2
 
+#if ! defined(_CRAYFTN) && ( defined(__GFORTRAN__) || defined(__INTEL_COMPILER) || defined(__PGI) || defined(__FLANG) )
 type, BIND(C) :: C_FILEPTR   ! for FILE STREAM IO calls
   type(C_PTR) :: p
 end type
+#else
+#define C_FILEPTR C_PTR
+#endif
 
 ! the following 3 types match libc types for time/sleep calls
 type, bind(C) :: timeval
@@ -213,7 +217,7 @@ interface
     integer(C_INT) :: fd
   end function c_open
   function c_fopen(path, mode) result(file) bind(C,name='fopen')  ! open file  (STREAM)
-    import :: C_PTR, C_CHAR, C_FILEPTR
+    import ! :: C_PTR, C_CHAR, C_FILEPTR
     character(C_CHAR), dimension(*), intent(IN) :: path
     character(C_CHAR), dimension(*), intent(IN) :: mode
     type(C_FILEPTR) :: file
@@ -227,7 +231,7 @@ interface
     integer(C_SSIZE_T) :: nb
   end function c_read
   function c_fread(buf, msize, mnbr, file) result(nitm) bind(C,name='fread')  ! read  (STREAM)
-    import :: C_PTR, C_SIZE_T, C_FILEPTR
+    import ! :: C_PTR, C_SIZE_T, C_FILEPTR
     type(C_PTR), intent(IN), value :: buf
     integer(C_SIZE_T), intent(IN), value :: msize, mnbr
     type(C_FILEPTR), intent(IN), value :: file
@@ -242,7 +246,7 @@ interface
     integer(C_SSIZE_T) :: nb
   end function c_write
   function c_fwrite(buf, msize, mnbr, file) result(nitm) bind(C,name='fwrite')  ! write  (STREAM)
-    import :: C_PTR, C_SIZE_T, C_FILEPTR
+    import ! :: C_PTR, C_SIZE_T, C_FILEPTR
     type(C_PTR), intent(IN), value :: buf
     integer(C_SIZE_T), intent(IN), value :: msize, mnbr
     type(C_FILEPTR), intent(IN), value :: file

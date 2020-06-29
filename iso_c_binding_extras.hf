@@ -37,6 +37,7 @@ integer, parameter :: O_WRONLY = 1
 integer, parameter :: SEEK_SET = 0
 integer, parameter :: SEEK_CUR = 1
 integer, parameter :: SEEK_END = 2
+integer, parameter :: PATH_MAX = 4096
 #else
 #include <c_binding_extras.hf>
 #endif
@@ -163,6 +164,12 @@ interface
     integer(C_INT) :: ok
   end function c_usleep
 
+  function c_putenv(envstr) result(ok) BIND(C,name='putenv')   ! change directory
+    import :: C_CHAR, C_INT
+    character(C_CHAR), dimension(*), intent(IN) :: envstr
+    integer(C_INT) :: ok
+  end function c_putenv
+
   function c_chdir(path) result(ok) BIND(C,name='chdir')   ! change directory
     import :: C_CHAR, C_INT
     character(C_CHAR), dimension(*), intent(IN) :: path
@@ -180,6 +187,11 @@ interface
     character(C_CHAR), dimension(*), intent(IN) :: path
     integer(C_INT) :: ok
   end function c_unlink
+  function c_remove(path) result(ok) BIND(C,name='remove')   ! remove file
+    import :: C_CHAR, C_INT
+    character(C_CHAR), dimension(*), intent(IN) :: path
+    integer(C_INT) :: ok
+  end function c_remove
 
   function c_mkdir(path, mode) result(ok) BIND(C,name='mkdir')  ! create directory
     import :: C_CHAR, C_INT, C_MODE_T
@@ -273,4 +285,65 @@ interface
     type(C_FILEPTR), intent(IN), value :: file
     integer(C_INT) :: fd
   end function c_fileno
+
+  function c_symlink(oldpath, newpath) result(ok) bind(C,name='symlink')
+    import :: C_INT, C_CHAR
+    character(C_CHAR), dimension(*), intent(IN) :: oldpath, newpath
+    integer(C_INT) :: ok
+  end function c_symlink
+
+  function c_rename(oldpath, newpath) result(ok) bind(C,name='rename')
+    import :: C_INT, C_CHAR
+    character(C_CHAR), dimension(*), intent(IN) :: oldpath, newpath
+    integer(C_INT) :: ok
+  end function c_rename
+
+  function c_realpath(path, realpath) result(str) bind(C,name='realpath')
+    import :: C_PTR, C_CHAR
+    character(C_CHAR), dimension(*), intent(IN) :: path
+    type(C_PTR), intent(IN), value :: realpath
+    type(C_PTR) :: str
+  end function c_realpath
+
+  function c_readlink(path, buf, bufsz) result(nbytes) bind(C,name='readlink')
+    import :: C_PTR, C_SSIZE_T, C_SIZE_T
+    type(C_PTR), intent(IN), value :: path, buf
+    integer(C_SIZE_T), intent(IN), value :: bufsz
+    integer(C_SSIZE_T) :: nbytes
+  end function c_readlink
+
+  function c_getwd(buf, bufsz) result(str) bind(C,name='getcwd')
+    import :: C_PTR, C_SIZE_T
+    type(C_PTR), intent(IN), value :: buf
+    integer(C_SIZE_T), intent(IN), value :: bufsz
+    type(C_PTR) :: str
+  end function c_getwd
+
+  function c_strlen(str) result(length) bind(C,name='strlen')
+    import C_CHAR, C_SIZE_T
+    character(C_CHAR), dimension(*), intent(IN) :: str
+    integer(C_SIZE_T) :: length
+  end function c_strlen
+
+  subroutine c_free(what) bind(C,name='free')
+    import :: C_PTR
+    type(C_PTR), intent(IN), value :: what
+  end subroutine c_free
+
+end interface
+
+! string copy between Fortran and C
+interface c_f_string
+  subroutine c_f_string1(c_string, f_string, direction) ! C_PTR <--> character(len=*)
+    import :: C_PTR
+    type(C_PTR), intent(IN), value :: c_string
+    character(len=*), intent(INOUT) :: f_string
+    integer, intent(IN) :: direction    ! 0 if C to Fortran, size of c_string if Fortran to C
+  end subroutine c_f_string1
+  subroutine c_f_string2(c_string, f_string, direction) ! dimension(*) <--> character(len=*)
+    import :: C_CHAR
+    character(C_CHAR), dimension(*), intent(INOUT), target :: c_string
+    character(len=*), intent(INOUT)  :: f_string
+    integer, intent(IN) :: direction    ! 0 if C to Fortran, size of c_string if Fortran to C
+  end subroutine c_f_string2
 end interface

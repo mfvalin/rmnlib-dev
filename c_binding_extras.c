@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <limits.h>
 
 int main(){
   printf("integer, parameter :: C_SSIZE_T = %ld\n",sizeof(ssize_t));
@@ -26,5 +27,6 @@ int main(){
   printf("integer, parameter :: SEEK_SET = %d\n",SEEK_SET);
   printf("integer, parameter :: SEEK_CUR = %d\n",SEEK_CUR);
   printf("integer, parameter :: SEEK_END = %d\n",SEEK_END);
+  printf("integer, parameter :: PATH_MAX = %d\n",PATH_MAX);
   return 0;
 }

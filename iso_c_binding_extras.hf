@@ -70,12 +70,14 @@ integer, parameter :: PATH_MAX = 4096
   integer, parameter :: STDOUT_FILENO = 1
   integer, parameter :: STDERR_FILENO = 2
 
+! some compilers have problems passing this user type as a value. in those case type(C_FILEPTR) becomes type(C_PTR)
 #if ! defined(_CRAYFTN) && ( defined(__GFORTRAN__) || defined(__INTEL_COMPILER) || defined(__PGI) || defined(__FLANG) )
 type, BIND(C) :: C_FILEPTR   ! for FILE STREAM IO calls
   type(C_PTR) :: p
 end type
 #else
 #define C_FILEPTR C_PTR
+#define c_fileptr c_ptr
 #endif
 
 ! the following 3 types match libc types for time/sleep calls
@@ -96,8 +98,8 @@ end type
 
 ! interfaces tp popular libc functions
 interface c_gettimeofday    !  get WALL CLOCK time
-  ! tz will usually be C_NULL_PTR
 #if ! defined(_CRAYFTN) && ( defined(__GFORTRAN__) || defined(__INTEL_COMPILER) || defined(__PGI) || defined(__FLANG) )
+#if defined(WITH_POLYMORPHIC)
   function c_gettimeofday1(tv, tz) result(ok) BIND(C,name='gettimeofday')
     import :: C_PTR, timeval,timezone,  C_INT
     type(timeval), intent(OUT)  :: tv
@@ -105,6 +107,8 @@ interface c_gettimeofday    !  get WALL CLOCK time
     integer(C_INT) :: ok
   end function c_gettimeofday1
 #endif
+#endif
+  ! tz will usually be C_NULL_PTR
   function c_gettimeofday2(tv, tz) result(ok) BIND(C,name='gettimeofday')  ! recommended call
     import :: C_PTR, timeval, C_INT
     type(timeval), intent(OUT)     :: tv
@@ -114,8 +118,8 @@ interface c_gettimeofday    !  get WALL CLOCK time
 end interface
 
 interface c_nanosleep   !  sleep in nanoseconds
-  ! rem will often be C_NULL_PTR
 #if ! defined(_CRAYFTN) && ( defined(__GFORTRAN__) || defined(__INTEL_COMPILER) || defined(__PGI) || defined(__FLANG) )
+#if defined(WITH_POLYMORPHIC)
   function c_nanosleep1(req, rem) result(ok) bind(C,name='nanosleep')
     import :: C_PTR, timespec, C_INT
     type(timespec), intent(IN)  :: req
@@ -123,6 +127,8 @@ interface c_nanosleep   !  sleep in nanoseconds
     integer(C_INT) :: ok
   end function c_nanosleep1
 #endif
+#endif
+  ! rem will often be C_NULL_PTR
   function c_nanosleep2(req, rem) result(ok) bind(C,name='nanosleep')  ! frequent call
     import :: C_PTR, timespec, C_INT
     type(timespec), intent(IN)     :: req
@@ -217,7 +223,11 @@ interface
     integer(C_INT) :: fd
   end function c_open
   function c_fopen(path, mode) result(file) bind(C,name='fopen')  ! open file  (STREAM)
-    import ! :: C_PTR, C_CHAR, C_FILEPTR
+#if defined(C_FILEPTR)
+    import 
+#else
+    import :: C_PTR, C_CHAR, C_FILEPTR
+#endif
     character(C_CHAR), dimension(*), intent(IN) :: path
     character(C_CHAR), dimension(*), intent(IN) :: mode
     type(C_FILEPTR) :: file
@@ -231,7 +241,11 @@ interface
     integer(C_SSIZE_T) :: nb
   end function c_read
   function c_fread(buf, msize, mnbr, file) result(nitm) bind(C,name='fread')  ! read  (STREAM)
-    import ! :: C_PTR, C_SIZE_T, C_FILEPTR
+#if defined(C_FILEPTR)
+    import 
+#else
+    import :: C_PTR, C_CHAR, C_FILEPTR, C_SIZE_T
+#endif
     type(C_PTR), intent(IN), value :: buf
     integer(C_SIZE_T), intent(IN), value :: msize, mnbr
     type(C_FILEPTR), intent(IN), value :: file
@@ -246,7 +260,11 @@ interface
     integer(C_SSIZE_T) :: nb
   end function c_write
   function c_fwrite(buf, msize, mnbr, file) result(nitm) bind(C,name='fwrite')  ! write  (STREAM)
-    import ! :: C_PTR, C_SIZE_T, C_FILEPTR
+#if defined(C_FILEPTR)
+    import 
+#else
+    import :: C_PTR, C_CHAR, C_FILEPTR, C_SIZE_T
+#endif
     type(C_PTR), intent(IN), value :: buf
     integer(C_SIZE_T), intent(IN), value :: msize, mnbr
     type(C_FILEPTR), intent(IN), value :: file

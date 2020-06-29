@@ -70,15 +70,12 @@ integer, parameter :: PATH_MAX = 4096
   integer, parameter :: STDOUT_FILENO = 1
   integer, parameter :: STDERR_FILENO = 2
 
-! some compilers have problems passing this user type as a value. in those case type(C_FILEPTR) becomes type(C_PTR)
+! some compilers have problems returning this user type as a value. in those case type(C_FILEPTR) could be type(C_PTR)
 #if ! defined(_CRAYFTN) && ( defined(__GFORTRAN__) || defined(__INTEL_COMPILER) || defined(__PGI) || defined(__FLANG) )
+#endif
 type, BIND(C) :: C_FILEPTR   ! for FILE STREAM IO calls
   type(C_PTR) :: p
 end type
-#else
-#define C_FILEPTR C_PTR
-#define c_fileptr c_ptr
-#endif
 
 ! the following 3 types match libc types for time/sleep calls
 type, bind(C) :: timeval
@@ -223,14 +220,11 @@ interface
     integer(C_INT) :: fd
   end function c_open
   function c_fopen(path, mode) result(file) bind(C,name='fopen')  ! open file  (STREAM)
-#if defined(C_FILEPTR)
-    import 
-#else
     import :: C_PTR, C_CHAR, C_FILEPTR
-#endif
     character(C_CHAR), dimension(*), intent(IN) :: path
     character(C_CHAR), dimension(*), intent(IN) :: mode
-    type(C_FILEPTR) :: file
+!     type(C_FILEPTR) :: file
+    type(C_PTR) :: file    ! some compilers have problems returning type(C_FILEPTR)
   end function c_fopen
 
   function c_read(fd, buf, cnt) result(nb) bind(C,name='read') ! read (file descriptor)
@@ -241,11 +235,7 @@ interface
     integer(C_SSIZE_T) :: nb
   end function c_read
   function c_fread(buf, msize, mnbr, file) result(nitm) bind(C,name='fread')  ! read  (STREAM)
-#if defined(C_FILEPTR)
-    import 
-#else
     import :: C_PTR, C_CHAR, C_FILEPTR, C_SIZE_T
-#endif
     type(C_PTR), intent(IN), value :: buf
     integer(C_SIZE_T), intent(IN), value :: msize, mnbr
     type(C_FILEPTR), intent(IN), value :: file
@@ -260,11 +250,7 @@ interface
     integer(C_SSIZE_T) :: nb
   end function c_write
   function c_fwrite(buf, msize, mnbr, file) result(nitm) bind(C,name='fwrite')  ! write  (STREAM)
-#if defined(C_FILEPTR)
-    import 
-#else
     import :: C_PTR, C_CHAR, C_FILEPTR, C_SIZE_T
-#endif
     type(C_PTR), intent(IN), value :: buf
     integer(C_SIZE_T), intent(IN), value :: msize, mnbr
     type(C_FILEPTR), intent(IN), value :: file

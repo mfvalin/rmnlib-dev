@@ -5,7 +5,6 @@ typedef struct {
      unf:1, read_only:1, old:1, scratch:1, notpaged:1,
      pipe:1, write_mode:1, remote:1, wap:1, stdp:1,  padding:16;
 } attributs;
-// new structure name since 64 bit WA file addressing was implemented
 typedef struct {
   char * file_name;               // complete file name
   char * subname;                 // sub file name for cmcarc files
@@ -17,17 +16,18 @@ typedef struct {
   int32_t lrec;                   // record length when appliable
   int32_t open_flag;              // open/close flag
   attributs attr;                 // file attributes
-} general_file_info_64;
+} general_file_info ;
 
 #if defined(FNOM_OWNER)
-general_file_info_64 Fnom_General_File_Desc_Table[MAXFILES];
+general_file_info Fnom_General_File_Desc_Table[MAXFILES];
 #else
-extern general_file_info_64 Fnom_General_File_Desc_Table[MAXFILES];
+extern general_file_info Fnom_General_File_Desc_Table[MAXFILES];
 #endif
 #define FGFDT Fnom_General_File_Desc_Table
 
 int c_fretour(int iun);
 void (d_fgfdt)();
+int c_fnom(int *iun,char *nom,char *type,int lrec);
 int c_fnom_callback(int *iun,char *nom,char *type,int lrec,int (*f90open)(), int (*f90clos)());
 int c_fclos(int iun);
 

@@ -50,13 +50,12 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/signal.h>
-#define WIN32_O_BINARY 0
 
 #include <fcntl.h>
 #include <errno.h>
 
 #define FNOM_OWNER
-#include "../INTRALIB_INCLUDES/fnom64.h"
+#include "../INTRALIB_INCLUDES/fnom.h"
 #include "wafile64.h"
 
 #if defined(__linux__) || defined(__AIX__)
@@ -320,13 +319,11 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
     /* Make sure that file descriptor 0 (stdin) will not be returned by open for use with a regular file */
     /* This is a workaround for a particular case on Linux in batch mode with PBS */
     mode = O_RDONLY;
-#ifndef WIN32
     junk = open("/dev/null", mode);
     if (junk != 0)
       close(junk);
     /*    else
           printf("Debug junk associe a /dev/null\n"); */
-#endif
      ARMNLIB=getenv("ARMNLIB");
      armnlibpath=ARMNLIB;
 //     if (armnlibpath == NULL) armnlibpath = usrlocalenv;
@@ -608,7 +605,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
      int32_t rndflag77 = FGFDT[i].attr.rnd;
      int32_t unfflag77 = FGFDT[i].attr.unf;
      int32_t lmult = D77MULT;
-     ier = open64(FGFDT[i].file_name,O_RDONLY | WIN32_O_BINARY);
+     ier = open64(FGFDT[i].file_name,O_RDONLY);
      if (ier <=0) {
         FGFDT[i].file_size = -1;
         FGFDT[i].eff_file_size = -1;
@@ -1993,7 +1990,7 @@ if (FGFDT[indf].subname) {    /* fichier de type cmcarc */
   }
   FGFDT[indf].attr.read_only = 1;
   mode = O_RDONLY;
-  if ((fd = open64(FGFDT[indf].file_name,mode | WIN32_O_BINARY)) == -1) {
+  if ((fd = open64(FGFDT[indf].file_name,mode)) == -1) {
     fprintf(stderr,"qqcopen error: cannot open file %s\n",FGFDT[indf].file_name);
     return(-1);
   }
@@ -2015,7 +2012,7 @@ else {  /* not a CMCARC type file */
     {
       if (errno == ENOENT)     /* nouveau fichier, creation */
         {
-          fd = open64(FGFDT[indf].file_name, O_RDWR | O_CREAT | WIN32_O_BINARY,
+          fd = open64(FGFDT[indf].file_name, O_RDWR | O_CREAT,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
           FGFDT[indf].attr.read_only = 0;
           errmsg="cannot create file";
@@ -2025,13 +2022,13 @@ else {  /* not a CMCARC type file */
     if (! FGFDT[indf].attr.read_only)      /* tentative d'ouverture en mode R/W */
       {
         mode = O_RDWR;
-        fd = open64(FGFDT[indf].file_name, mode | WIN32_O_BINARY);
+        fd = open64(FGFDT[indf].file_name, mode);
         if (fd == -1) {
           if (!FGFDT[indf].attr.write_mode)
             {
               mode = O_RDONLY;
               FGFDT[indf].attr.read_only = 1;
-              fd = open64(FGFDT[indf].file_name, mode | WIN32_O_BINARY);
+              fd = open64(FGFDT[indf].file_name, mode);
               errmsg="cannot open file";
             }
           else                  /* ouverture demande en mode R/W */
@@ -2041,7 +2038,7 @@ else {  /* not a CMCARC type file */
     else if (FGFDT[indf].attr.read_only)  /* ouverture en mode R/O */
       {
         mode = O_RDONLY;
-        fd = open64(FGFDT[indf].file_name, mode | WIN32_O_BINARY);
+        fd = open64(FGFDT[indf].file_name, mode);
         errmsg="cannot open file";
       }
   if (fd == -1)
@@ -3075,7 +3072,7 @@ static void ZERO ( int32_t *dest, int nwords)
 int i;
 for (i=0 ; i<nwords ; i++) {dest[i]=0;};
 }
-#if defined(SELF_TEST)
+#if defined(WITH_TEST)
 //int c_fnom(int *iun,char *nom,char *type,int lrec)
 void test_c_fnom()
 {

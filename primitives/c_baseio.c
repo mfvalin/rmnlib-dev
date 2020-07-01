@@ -25,7 +25,7 @@
 #if ! defined(NO_RPN_MACROS)
 #include <rpnmacros.h>
 #else
-#define D77MULT 1
+#define D77MULT 4
 #endif
 
 #define swap_word_endianness(mot) { register uint32_t tmp =(uint32_t)mot; \
@@ -3076,29 +3076,36 @@ int i;
 for (i=0 ; i<nwords ; i++) {dest[i]=0;};
 }
 #if defined(SELF_TEST)
-main()
-{
-}
-#endif
-#if defined(SELF_TEST)
 //int c_fnom(int *iun,char *nom,char *type,int lrec)
-#pragma weak test_c_fnom__=test_c_fnom
-#pragma weak test_c_fnom_=test_c_fnom
-void test_c_fnom__();
-void test_c_fnom_();
 void test_c_fnom()
 {
-  long iun = 600;
+  intptr_t iun = 600;
   int iun2 = 0;
   int lrec = 0;
   int status;
   fprintf(stderr,"========== test_c_fnom START ==========\n");
-  status = c_fnom(iun,"C_file","RND+STD",lrec);
+  status = c_fnom((int *)iun,"C_file","RND+STD",lrec);
   fprintf(stderr,"test_c_fnom: status=%d\n",status);
   status = c_fnom(&iun2,"C_file2","RND+STD",lrec);
   fprintf(stderr,"test_c_fnom: status=%d, iun=%d\n",status,iun2);
   fprintf(stderr,"========== test_c_fnom  END  ==========\n");
 }
+#if defined(SELF_TEST_MAIN)
+int main(int argc, char **argv)
+{
+  test_c_fnom();
+}
+void f_tracebck(){}
+#endif
+void test_c_fnom_() {test_c_fnom() ; }
+void test_c_fnom__() {test_c_fnom() ; }
+
+void check_swap_records(void *record, int size, int tokensize){ exit(1);}
+int read_stream(int fd, void *ptr, int nbytes){ exit(1);}
+int write_stream(int fd, void *ptr, int n){ exit(1);}
+int accept_from_sock(int fserver){ exit(1);}
+int bind_to_localport(int *port, char *buf, int maxbuf){ exit(1);}
+
 #endif
 
 

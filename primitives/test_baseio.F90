@@ -54,6 +54,7 @@ program test
   endif
   if(r64 .ne. size(array0)) goto 777
   call waclos(iun)
+#if defined(NOT_LEAN)
   print *,'========== testing DA functions/subroutines  =========='
   call openda(iun)
   array2 = -1
@@ -84,6 +85,7 @@ program test
   status = fclos(iun)
   print *,'(waclos+fclos) iun,status =',iun,status
   if(status .ne. 0) goto 777                     ! error
+#endif
   print *,'========== testing D77 functionality  =========='
   iund77 = 0
   status = fnom(iund77,'/tmp/Scrap','D77+UNF',10)

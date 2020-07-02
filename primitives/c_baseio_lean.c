@@ -37,24 +37,18 @@
    while(nwords--) { swap_word_endianness(*buf);buf++; };\
    }
 
+#include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <sys/types.h>
-
-#include <sys/time.h>
 #include <unistd.h>
-#include <stdio.h>
-#include <sys/file.h>
-#include <sys/stat.h>
-#include <sys/signal.h>
-
 #include <fcntl.h>
 #include <errno.h>
 
 #define FNOM_OWNER
 #include "../INTRALIB_INCLUDES/fnom.h"
+#define LEAN_BASEIO
 #include "wafile64.h"
 
 #if defined(__linux__) || defined(__AIX__)
@@ -68,11 +62,8 @@ static int c_qqqfscr(char *type);
 static int qqcclos(int indf);
 static long long filepos(int indf);
 static int qqcopen(int indf);
-// static void qqcwawr(int32_t *buf,unsigned int ladr,int lnmots,int indf);
 static void qqcwawr64(int32_t *buf,uint64_t ladr, int lnmots, int indf);
-// static void qqcward(int32_t *buf,unsigned int ladr,int  lnmots, int indf);
 static void qqcward64(int32_t *buf,uint64_t ladr, int lnmots, int indf);
-// static int32_t qqcnblk(int lfd,int indf);
 int C_existe(char *filename);
 void f_tracebck();
 
@@ -80,10 +71,6 @@ static ENTETE_CMCARC cmcarc;
 // static ENTETE_CMCARC_V5 cmcarc64;
 
 static FILEINFO wafile[MAXWAFILES];
-
-static int WA_PAGE_SIZE = 0;
-static int WA_PAGE_NB   = 0;
-static int WA_PAGE_LIMIT = 0;
 
 static int init = 0;
 static int debug_mode = 0;
@@ -171,10 +158,6 @@ void static dump_file_entry(int i)
 *ARGUMENTS: none
 *
 */
-#pragma weak d_fgfdt__=d_fgfdt
-#pragma weak d_fgfdt_=d_fgfdt
-void d_fgfdt__();
-void d_fgfdt_();
 void d_fgfdt()
 {
    int i=0;
@@ -183,6 +166,8 @@ void d_fgfdt()
       if(FGFDT[i].iun != 0) dump_file_entry(i);
    }
 }
+void d_fgfdt__(){ d_fgfdt() ;}
+void d_fgfdt_(){ d_fgfdt() ;}
 
 /****************************************************************************
 *                     R E S E T _ F I L E _ E N T R Y                       *
@@ -1284,21 +1269,10 @@ static int qqcopen(int indf)
   char *errmsg="";
   
   /*    beginning of INITIALIZATION section    */
-if (! init) {
-    WA_PAGE_SIZE = 0;
-    WA_PAGE_NB = 0;
-    WA_PAGE_LIMIT = 0;
-  
+if (! init) {  
   for (ind = 0; ind < MAXWAFILES; ind++) {
     wafile[ind].file_desc = -1;
-    wafile[ind].nb_page_in_use = 0;
     wafile[ind].offset = 0;
-    wafile[ind].maxpages = WA_PAGE_NB;
-    if(WA_PAGE_NB > 0) {
-      wafile[ind].page = (PAGEINFO *)malloc(WA_PAGE_NB*sizeof(PAGEINFO));
-    }else{
-      wafile[ind].page = NULL;
-    }
   }
   init = 1;
 }
@@ -1409,20 +1383,18 @@ return(fd);
 *
 */
 
-#pragma weak d_wafdt__=d_wafdt
-#pragma weak d_wafdt_=d_wafdt
-void d_wafdt__();
-void d_wafdt_();
 void d_wafdt()
 {
 int i;
 fprintf(stderr,"\n   DUMP OF WA CONTROL TABLE \n");
 for (i=0;i<MAXWAFILES;i++){
    if(wafile[i].file_desc != -1)
-   fprintf(stderr,"waindex=%d, fd=%d, npages=%d, offset=%ld\n",
-    i,wafile[i].file_desc,wafile[i].nb_page_in_use,wafile[i].offset);
+   fprintf(stderr,"waindex=%d, fd=%d, offset=%ld\n",
+    i,wafile[i].file_desc,wafile[i].offset);
    }
 }
+void d_wafdt__(){ d_wafdt() ; }
+void d_wafdt_(){ d_wafdt() ; }
 
 /*****************************************************************************
 *                      H R J U S T                                           *
@@ -1438,16 +1410,14 @@ for (i=0;i<MAXWAFILES;i++){
 *RETURNS: the group of characters right justified.
 *
 */
-#pragma weak hrjust__=hrjust
-#pragma weak hrjust_=hrjust
-uint32_t hrjust__ (uint32_t *moth, int32_t *ncar);
-uint32_t hrjust_ (uint32_t *moth, int32_t *ncar);
 uint32_t hrjust (uint32_t *moth, int32_t *ncar)
 {
    int sc;
    sc = 8 * ( sizeof(int32_t) - *ncar );
    return (sc<=0 ? *moth : (*moth) >> sc);
 }
+uint32_t hrjust__ (uint32_t *moth, int32_t *ncar){ return hrjust(moth, ncar) ;}
+uint32_t hrjust_ (uint32_t *moth, int32_t *ncar){ return hrjust(moth, ncar) ;}
 
 /*****************************************************************************
 *                      H L J U S T                                           *
@@ -1463,16 +1433,14 @@ uint32_t hrjust (uint32_t *moth, int32_t *ncar)
 *RETURNS: the group of characters left justified.
 *
 */
-#pragma weak hljust__=hljust
-#pragma weak hljust_=hljust
-uint32_t hljust__ (uint32_t *moth, int32_t *ncar);
-uint32_t hljust_ (uint32_t *moth, int32_t *ncar);
 uint32_t hljust (uint32_t *moth, int32_t *ncar)
 {
    int sc;
    sc = 8 * ( sizeof(int32_t) - *ncar );
    return (sc<=0 ? *moth : (*moth) << sc);
 }
+uint32_t hljust__ (uint32_t *moth, int32_t *ncar){ return hljust(moth, ncar) ;}
+uint32_t hljust_ (uint32_t *moth, int32_t *ncar){ return hljust(moth, ncar) ;}
 
 /****************************************************************************
 *                              Q Q C W A W R                                *

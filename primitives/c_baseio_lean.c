@@ -1,4 +1,4 @@
-/* RMNLIB - Library of useful routines for C and FORTRAN programming
+/* RMNLIB - Library of useful routines for C and Fortran programming
  * Copyright (C) 1975-2015  Division de Recherche en Prevision Numerique
  *                          Environnement Canada
  *
@@ -254,7 +254,7 @@ static int find_file_entry(char *caller, int iun)
 *
 *NOTES: If name is all in upper case it will be converted to lower case.
 *       c_fnom is intended to be called from C.
-*       fnom is intended to be called from FORTRAN.
+*       fnom is intended to be called from Fortran.
 *
 *AUTHOR: Mario Lepine - RPN - nov 1995
 * 
@@ -263,7 +263,7 @@ static int find_file_entry(char *caller, int iun)
 *           sept 2008 - Correction du nom de fichier passe pour fichier cmcarc remote 
 *
 */
-// the original c_fnom entry point has been moved to f_baseio.F90 because of needed fortran callbacks
+// the original fnom entry point has been moved to f_baseio.F90 because of needed fortran callbacks
 void c_fnom_externals(int (*f90open)(), int (*f90clos)()){
   f90_open = f90open;
   f90_clos = f90clos;
@@ -272,14 +272,11 @@ void c_fnom_externals(int (*f90open)(), int (*f90clos)()){
 int c_fnom(int *iun,char *nom,char *type,int lrec)
 {
   int liun,ier = 0, minus = 0, majus = 0, lng, i, j, pid, lngt, junk, mode;
-  char *c, *c2, *tmpdir, *cmcarc, *pos2p;
-  char remote_mach[256];
+  char *c, *c2, *tmpdir, *cmcarc;
   char nom2[1024];
   intptr_t intptrt;
 
   if(fnom_initialized == 0) {
-//     f90_open = f90open;
-//     f90_clos = f90clos;
     /* Make sure that file descriptor 0 (stdin) will not be returned by open for use with a regular file */
     /* This is a workaround for a particular case on Linux in batch mode with PBS */
     mode = O_RDONLY;
@@ -290,7 +287,6 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
           printf("Debug junk associe a /dev/null\n"); */
      ARMNLIB=getenv("ARMNLIB");
      armnlibpath=ARMNLIB;
-//     if (armnlibpath == NULL) armnlibpath = usrlocalenv;
      if (armnlibpath == NULL) armnlibpath = LOCALDIR;
      if( ARMNLIB == NULL ) ARMNLIB = LOCALDIR;
      AFSISIO=getenv("AFSISIO");
@@ -313,12 +309,18 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
      liun = *iun;
      }
 
-  if ((liun ==6) && ((strcmp(nom,"$OUT") == 0) || (strcmp(nom,"$OUTPUT") == 0) || (strcmp(nom,"OUTPUT") == 0) ||                     (strcmp(nom,"output") == 0))) {
+  if ((liun ==6) && ((strcmp(nom,"$OUT") == 0) || 
+                     (strcmp(nom,"$OUTPUT") == 0) || 
+                     (strcmp(nom,"OUTPUT") == 0) || 
+                     (strcmp(nom,"output") == 0))) {
     stdoutflag=1;
 /*    fprintf(stderr,"C_FNOM DEBUG already connected: iun=%d filename=%s\n",liun,nom);   */
     return(0);
   }
-  if ((liun ==5) && ((strcmp(nom,"$IN") == 0) || (strcmp(nom,"$INPUT") == 0) || (strcmp(nom,"INPUT") == 0) ||                     (strcmp(nom,"input") == 0))) {
+  if ((liun ==5) && ((strcmp(nom,"$IN") == 0) || 
+                     (strcmp(nom,"$INPUT") == 0) || 
+                     (strcmp(nom,"INPUT") == 0) || 
+                     (strcmp(nom,"input") == 0))) {
     stdinflag=1;
 /*    fprintf(stderr,"C_FNOM DEBUG already connected: iun=%d filename=%s\n",liun,nom);   */
     return(0);
@@ -394,6 +396,8 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
   FGFDT[i].attr.pipe = 0;
   FGFDT[i].attr.remote=0;
 
+// TO DO : process attribute to indicate that a WA file may be sparse
+
   if (strstr(type,"STREAM") || strstr(type,"stream")){ FGFDT[i].attr.stream=1;
                                                        FGFDT[i].attr.rnd=1; }
   if (strstr(type,"STD")    || strstr(type,"std"))   { FGFDT[i].attr.std=1;
@@ -421,7 +425,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
   if (strstr(type,"D77")    || strstr(type,"d77"))   { FGFDT[i].attr.ftn=1;
                                                        FGFDT[i].attr.rnd=1; }
   if (strstr(type,"SCRATCH") || strstr(type,"scratch")) FGFDT[i].attr.scratch=1;
-  if (strstr(type,"REMOTE") || strstr(type,"remote")) { FGFDT[i].attr.remote=1; }
+//   if (strstr(type,"REMOTE") || strstr(type,"remote")) { FGFDT[i].attr.remote=1; }  // no longer recognized
     
   if (!FGFDT[i].attr.std && !FGFDT[i].attr.burp && !FGFDT[i].attr.wap && 
       !FGFDT[i].attr.wa && !FGFDT[i].attr.rnd  && !FGFDT[i].attr.stream)
@@ -441,8 +445,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
      pid = getpid();
      tmpdir = getenv("TMPDIR");
      if (tmpdir == NULL) {
-       fprintf(stderr,
-"c_fnom warning: TMPDIR environment variable is not defined, /tmp is used\n");
+       fprintf(stderr,"c_fnom warning: TMPDIR environment variable is not defined, /tmp is used\n");
        tmpdir = "/tmp";
      }
      lng = strlen(nom) + strlen(tmpdir) + 10 + 3 + 128;    /* espace tampon supplementaire */
@@ -460,26 +463,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
  */
      lng = strlen(nom);
      FGFDT[i].file_name = malloc(lng+1);
-     if ((FGFDT[i].attr.remote) && (strchr(nom, ':'))) {
-       if (FGFDT[i].attr.rnd) {
-/*          remote_mach = strtok(nom,":"); */
-          pos2p = strchr(nom, ':');
-          if (pos2p != NULL) {
-            strncpy(remote_mach, nom, pos2p-nom);
-            remote_mach[pos2p-nom]='\0';
-            nom = ++pos2p;
-            printf("Debug+ remote_mach=%s file name=%s\n", remote_mach, nom);
-            lng = strlen(nom);
-          }
-       }  
-       else {
-          /* code to remote copy the file on local machine and change file name */
-          FGFDT[i].attr.remote=0;
-          FGFDT[i].attr.read_only = 0;     /* file becomes read only */
-       }
-     }
-     else 
-        FGFDT[i].attr.remote=0;
+     FGFDT[i].attr.remote=0;
      c = nom;
      if (nom[0] == '@') {  /* name is of the form @some_file_name */
        c++;              /* skip the @, scan later under        */
@@ -517,9 +501,9 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
      }
   }
 /*
- *   verify for a cmcarc type of file (filename@subfilename)
+ *   check for a file within a cmcarc file (filename@subfilename)
  */
-  if ((cmcarc = strchr(FGFDT[i].file_name,'@')) && !(FGFDT[i].attr.remote)) {
+  if ( (cmcarc = strchr(FGFDT[i].file_name,'@')) ) {
      FGFDT[i].subname = malloc(lng+1);
      strcpy(FGFDT[i].subname,cmcarc+1);
      *cmcarc = '\0';
@@ -553,14 +537,14 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
      lng=strlen(filename);
      }
 
-  if ((FGFDT[i].attr.old || FGFDT[i].attr.read_only) && ! FGFDT[i].attr.remote)
+  if ( (FGFDT[i].attr.old || FGFDT[i].attr.read_only) )
      if (! C_existe(FGFDT[i].file_name) ) {
         fprintf(stderr,"c_fnom error: file %s should exist and does not\n",FGFDT[i].file_name);
         junk=c_fclos(liun);
         return(-1);
         }
 /*
- *   FORTRAN files must be opened by a FORTRAN module
+ *   Fortran files must be opened by a Fortran routine calling the Fortran runtime
  */
   ier = 0;
   if (FGFDT[i].attr.ftn) {
@@ -581,8 +565,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
         FGFDT[i].eff_file_size = dimm / sizeof(int32_t);
         close(ier);
         }
-   //function qqqf7op_c(iun,c_name,lrec,rndflag,unfflag,lmult,leng) result(status)
-     ier = (*f90_open)(iun77,FGFDT[i].file_name,lrec77,rndflag77,unfflag77,lmult,lng);
+     ier = (*f90_open)(iun77,FGFDT[i].file_name,lrec77,rndflag77,unfflag77,lmult,lng);   // callback function
   }
   else if (FGFDT[i].attr.stream || FGFDT[i].attr.std || FGFDT[i].attr.burp || FGFDT[i].attr.wa ||
           (FGFDT[i].attr.rnd && !FGFDT[i].attr.ftn) ) {
@@ -615,16 +598,6 @@ int c_fclos(int iun)
 {
    int i,ier;
    int32_t iun77;
-
-/*
-   for (i=0; i<MAXFILES; i++)
-      if (FGFDT[i].iun == iun)
-         break;
-   if (i == MAXFILES) {
-   fprintf(stderr,"c_fclos error: unit %d is not associated with any file\n",iun);
-   return(-2);
-   }
-*/
 
    if ((iun == 6) && (stdoutflag)) return(0);
    if ((iun == 5) && (stdinflag)) return(0);
@@ -1277,8 +1250,7 @@ if (! init) {
   init = 1;
 }
 /*    end of INITIALIZATION section    */
-if (FGFDT[indf].attr.remote) return(0);  /* file will be open by fnom_rem_connect */
-
+
 FGFDT[indf].fd = -1;
 ind = 0;
 while ((wafile[ind].file_desc != -1) && (ind < MAXWAFILES))

@@ -1,4 +1,5 @@
 #define MAXFILES 1024
+// TO DO : add attribute to indicate that a file may be sparse
 typedef struct {
   unsigned int 
      stream:1, std:1, burp:1, rnd:1, wa:1, ftn:1,

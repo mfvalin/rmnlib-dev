@@ -565,6 +565,8 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
         FGFDT[i].eff_file_size = dimm / sizeof(int32_t);
         close(ier);
         }
+// TO DO :
+//      ier = (*f90_open)(iun77,FGFDT[i].file_name,  type  ,lrec77,rndflag77,unfflag77,lmult );   // callback function
      ier = (*f90_open)(iun77,FGFDT[i].file_name,lrec77,rndflag77,unfflag77,lmult,lng);   // callback function
   }
   else if (FGFDT[i].attr.stream || FGFDT[i].attr.std || FGFDT[i].attr.burp || FGFDT[i].attr.wa ||

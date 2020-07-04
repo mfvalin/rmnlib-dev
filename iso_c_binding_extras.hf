@@ -96,7 +96,7 @@ end type
 ! interfaces tp popular libc functions
 interface c_gettimeofday    !  get WALL CLOCK time
 #if ! defined(_CRAYFTN) && ( defined(__GFORTRAN__) || defined(__INTEL_COMPILER) || defined(__PGI) || defined(__FLANG) )
-#if defined(WITH_POLYMORPHIC)
+#if defined(WITH_POLYMORPHISM)
   function c_gettimeofday1(tv, tz) result(ok) BIND(C,name='gettimeofday')
     import :: C_PTR, timeval,timezone,  C_INT
     type(timeval), intent(OUT)  :: tv
@@ -116,7 +116,7 @@ end interface
 
 interface c_nanosleep   !  sleep in nanoseconds
 #if ! defined(_CRAYFTN) && ( defined(__GFORTRAN__) || defined(__INTEL_COMPILER) || defined(__PGI) || defined(__FLANG) )
-#if defined(WITH_POLYMORPHIC)
+#if defined(WITH_POLYMORPHISM)
   function c_nanosleep1(req, rem) result(ok) bind(C,name='nanosleep')
     import :: C_PTR, timespec, C_INT
     type(timespec), intent(IN)  :: req
@@ -338,20 +338,4 @@ interface
     type(C_PTR), intent(IN), value :: what
   end subroutine c_free
 
-end interface
-
-! string copy between Fortran and C
-interface c_f_string
-  subroutine c_f_string1(c_string, f_string, direction) ! C_PTR <--> character(len=*)
-    import :: C_PTR
-    type(C_PTR), intent(IN), value :: c_string
-    character(len=*), intent(INOUT) :: f_string
-    integer, intent(IN) :: direction    ! 0 if C to Fortran, size of c_string if Fortran to C
-  end subroutine c_f_string1
-  subroutine c_f_string2(c_string, f_string, direction) ! dimension(*) <--> character(len=*)
-    import :: C_CHAR
-    character(C_CHAR), dimension(*), intent(INOUT), target :: c_string
-    character(len=*), intent(INOUT)  :: f_string
-    integer, intent(IN) :: direction    ! 0 if C to Fortran, size of c_string if Fortran to C
-  end subroutine c_f_string2
 end interface

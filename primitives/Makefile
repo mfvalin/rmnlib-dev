@@ -35,6 +35,12 @@ test1: test_baseio.Abs
 	./test_baseio.Abs
 	rm -f C_file C_file2 /tmp/Scrap*
 
+testc:
+	$(CC) $(CFLAGS) -DSELF_TEST -o testc.Abs c_baseio_lean.c
+	./testc.Abs
+	ls -l C_file C_file2
+	rm -f ./testc.Abs C_file C_file2
+
 clean:
 	rm -f librmn_c.a librmn_f.a *.o *.mod a.out test_baseio.Abs test_baseio_lean.Abs
 

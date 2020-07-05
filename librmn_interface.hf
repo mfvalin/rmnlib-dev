@@ -16,6 +16,60 @@ interface c_f_string
 end interface
 
 interface
+#if ! defined(FNOM_OWNER)
+  function fnom(iun,name,opti,reclen) result (status)
+    import :: C_INT
+    integer(C_INT), intent(INOUT) :: iun
+    integer(C_INT), intent(IN)    :: reclen
+    character(len=*), intent(IN)  :: name,opti
+    integer(C_INT)                :: status
+  end function fnom
+  function qqqfnom(iun,name,ftyp,flrec) result(status)  ! get filename, properties, record length  info from unit number
+    import :: C_INT
+    integer(C_INT), intent(IN)    :: iun
+    integer(C_INT), intent(OUT)   :: flrec
+    character(len=*), intent(OUT) :: name,ftyp
+    integer(C_INT)                :: status
+  end function qqqfnom
+  function fclos(iun) result(status)
+    integer, intent(IN) :: iun
+    integer :: status
+  end function fclos
+  function getfdsc(iun) result(fd)
+    import :: C_INT
+    integer(C_INT), intent(IN) :: iun
+    integer(C_INT) :: fd
+  end function getfdsc
+  function fretour(iun) result(status)
+    integer, intent(IN) :: iun
+    integer :: status
+  end function fretour
+  subroutine waopen(iun)    ! open a Word Addressable (WA) file
+    import :: C_INT
+    integer(C_INT), intent(IN) :: iun
+  end subroutine waopen
+  subroutine waclos(iun)    ! close a Word Addressable (WA) file
+    import :: C_INT
+    integer(C_INT), intent(IN) :: iun
+  end subroutine waclos
+  function numblks(iun) result(nblks)
+    import :: C_INT
+    integer(C_INT), intent(IN) :: iun
+    integer(C_INT) :: nblks
+  end function numblks
+  function wasize(iun) result(nwds32)
+    import :: C_INT
+    implicit none
+    integer(C_INT), intent(IN) :: iun
+    integer(C_INT) :: nwds32
+  end function wasize
+  function existe(name) result(status)
+    import :: C_INT, C_CHAR
+    character(len=*), intent(IN) :: name
+    integer(C_INT) :: status
+    character(C_CHAR), dimension(len(trim(name))+1), target :: name1
+  end function existe
+#endif
   function c_fnom(iun,name,opti,reclen) result (status) bind(C,name='c_fnom')
     import
     integer(C_INT), intent(INOUT) :: iun
@@ -28,6 +82,11 @@ interface
     integer(C_INT), value :: iun
     integer(C_INT) :: status
   end function c_fclos
+  function c_getfdsc(iun) result(i) bind(C,name='c_getfdsc')
+    import :: C_INT
+    integer(C_INT), intent(IN), value :: iun
+    integer(C_INT) :: i
+  end function c_getfdsc
   function c_numblks(iun) result(i) bind(C,name='c_numblks')
     import
     integer(C_INT), intent(IN), value :: iun
@@ -53,6 +112,13 @@ interface
     integer(C_INT), intent(IN), value :: adr
     type(C_PTR), intent(IN), value :: buf
   end subroutine c_waread
+  function c_waread2(iun,buf,adr,nmots) result(n) bind(C,name='c_waread2')
+    import :: C_INT, C_PTR
+    integer(C_INT), intent(IN), value :: iun, nmots
+    integer(C_INT), intent(IN), value :: adr
+    type(C_PTR), intent(IN), value :: buf
+    integer(C_INT) :: n
+  end function c_waread2
   function c_waread64(iun,buf,adr,nmots,partition) result(n) bind(C,name='c_waread64')
     import :: C_INT, C_LONG_LONG, C_PTR
     integer(C_INT), intent(IN), value :: iun, nmots, partition
@@ -66,6 +132,13 @@ interface
     integer(C_INT), intent(IN), value :: adr
     type(C_PTR), intent(IN), value :: buf
   end subroutine c_wawrit
+  function c_wawrit2(iun,buf,adr,nmots) result(n) bind(C,name='c_wawrit2')
+    import :: C_INT, C_PTR
+    integer(C_INT), intent(IN), value :: iun, nmots
+    integer(C_INT), intent(IN), value :: adr
+    type(C_PTR), intent(IN), value :: buf
+    integer(C_INT) :: n
+  end function c_wawrit2
   function c_wawrit64(iun,buf,adr,nmots,partition) result(n) bind(C,name='c_wawrit64')
     import :: C_INT, C_LONG_LONG, C_PTR
     integer(C_INT), intent(IN), value :: iun, nmots, partition

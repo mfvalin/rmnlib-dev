@@ -65,7 +65,7 @@ static int qqcopen(int indf);
 static void qqcwawr64(int32_t *buf,uint64_t ladr, int lnmots, int indf);
 static void qqcward64(int32_t *buf,uint64_t ladr, int lnmots, int indf);
 int C_existe(char *filename);
-void f_tracebck();
+// void f_tracebck();
 
 static ENTETE_CMCARC cmcarc;
 // static ENTETE_CMCARC_V5 cmcarc64;
@@ -552,7 +552,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
      int32_t lrec77=lrec;
      int32_t rndflag77 = FGFDT[i].attr.rnd;
      int32_t unfflag77 = FGFDT[i].attr.unf;
-     int32_t lmult = D77MULT;
+//      int32_t lmult = D77MULT;
      ier = open64(FGFDT[i].file_name,O_RDONLY);
      if (ier <=0) {
         FGFDT[i].file_size = -1;
@@ -565,9 +565,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
         FGFDT[i].eff_file_size = dimm / sizeof(int32_t);
         close(ier);
         }
-// TO DO :
-//      ier = (*f90_open)(iun77,FGFDT[i].file_name,  type  ,lrec77,rndflag77,unfflag77,lmult );   // callback function
-     ier = (*f90_open)(iun77,FGFDT[i].file_name,lrec77,rndflag77,unfflag77,lmult,lng);   // callback function
+     ier = (*f90_open)(iun77, FGFDT[i].file_name, type, lrec77, rndflag77, unfflag77);   // callback function
   }
   else if (FGFDT[i].attr.stream || FGFDT[i].attr.std || FGFDT[i].attr.burp || FGFDT[i].attr.wa ||
           (FGFDT[i].attr.rnd && !FGFDT[i].attr.ftn) ) {
@@ -1539,13 +1537,11 @@ static void qqcward64(int32_t *buf,uint64_t ladr,int lnmots,int indf)
       fprintf(stderr,"qqcward error: tried to read %ld bytes, only read %d\n",
 		    sizeof(int32_t)*lnmots,reste);
       fprintf(stderr,"qqcward: wafile[ind].offset=%ld ladr=%ld\n",wafile[ind].offset,ladr);
-      f_tracebck();
+//       f_tracebck();
       exit(1);
   }
 }
 
-#if defined(WITH_TEST)
-//int c_fnom(int *iun,char *nom,char *type,int lrec)
 void test_c_fnom()
 {
   intptr_t iun = 600;
@@ -1559,23 +1555,13 @@ void test_c_fnom()
   fprintf(stderr,"test_c_fnom: status=%d, iun=%d\n",status,iun2);
   fprintf(stderr,"========== test_c_fnom  END  ==========\n");
 }
-#if defined(SELF_TEST_MAIN)
+void test_c_fnom_() {test_c_fnom() ; }
+void test_c_fnom__() {test_c_fnom() ; }
+
+#if defined(SELF_TEST)
 int main(int argc, char **argv)
 {
   test_c_fnom();
 }
-void f_tracebck(){}
+// void f_tracebck(){}
 #endif
-void test_c_fnom_() {test_c_fnom() ; }
-void test_c_fnom__() {test_c_fnom() ; }
-
-void check_swap_records(void *record, int size, int tokensize){ exit(1);}
-int read_stream(int fd, void *ptr, int nbytes){ exit(1);}
-int write_stream(int fd, void *ptr, int n){ exit(1);}
-int accept_from_sock(int fserver){ exit(1);}
-int bind_to_localport(int *port, char *buf, int maxbuf){ exit(1);}
-
-#endif
-
-
-

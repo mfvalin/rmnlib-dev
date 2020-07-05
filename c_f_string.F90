@@ -35,14 +35,11 @@ subroutine c_f_string1(c_string, f_string, direction)
   call C_F_POINTER(c_string, temp, [len(trim(f_string))])
   if(direction == 0) then   ! C to Fortran
     i = 1
-    do while(i <= len(trim(f_string)) .and. temp(i) .ne. ACHAR(0))
+    do while(i <= len(f_string) .and. temp(i) .ne. ACHAR(0))
       f_string(i:i) = temp(i)
       i = i + 1
     enddo
-    do while(i <= len(trim(f_string)))
-      f_string(i:i) = ' '
-      i = i + 1
-    enddo
+    f_string(i:) = ' '      ! pad with spaces
   else                      ! Fortran to C
     i = 1
     do while(i <= min(len(trim(f_string)), direction-1) )
@@ -68,14 +65,11 @@ subroutine c_f_string2(c_string, f_string, direction)
 
   if(direction == 0) then   ! C to Fortran
     i = 1
-    do while(i <= len(trim(f_string)) .and. c_string(i) .ne. ACHAR(0))
+    do while(i <= len(f_string) .and. c_string(i) .ne. ACHAR(0))
       f_string(i:i) = c_string(i)
       i = i + 1
     enddo
-    do while(i <= len(trim(f_string)))
-      f_string(i:i) = ' '
-      i = i + 1
-    enddo
+    f_string(i:) = ' '      ! pad with spaces
   else                      ! Fortran to C
     i = 1
     do while(i <= min(len(trim(f_string)), direction-1) )

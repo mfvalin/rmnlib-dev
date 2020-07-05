@@ -1,18 +1,53 @@
 program test
   use ISO_C_BINDING
   implicit none
-  integer, external :: fnom, fclos, wawrit64, waread64
+#include <librmn_interface.hf>
+  integer, external :: wawrit64, waread64
   integer :: iun, status, i, r64, w64, iund77, iun1, iun2
   integer*8 :: ladr
   integer, dimension(1024) :: array0, array1, array2
   integer, dimension(100) :: darray
   character(len=128) :: str1, str2
+  character(len=16) :: s1, s2, s3
+  namelist /namelist_s/ s1, s2, s3
 
+  s1 = 'string no 1'
+  s2 = 'string no 2'
+  s3 = 'string no 3'
   do i=1,size(array0)
     array0(i) = i
   enddo
   print *,'========== base IO test, c_baseio + f_baseio =========='
   call test_c_fnom()
+
+  print *,'==========testing with Fortran file 99 already open =========='
+  iun1 = 99
+  open(unit=99,STATUS='SCRATCH',err=777)
+  status = fnom(iun1,'already_open','FTN+FMT',0)
+  print *,'an error message is expected'
+  print *,'(fnom) iun,status =',iun1,status
+  print *,'========== testing formatted I/O + namelist  =========='
+  iun1 = 0
+  status = fnom(iun1,'test_namelist','FTN+FMT',0)
+  print *,'(fnom) iun,status =',iun1,status
+  write(iun1,*) 'Line no 1'
+  write(iun1,nml=namelist_s) 
+  write(iun1,*) 'Line no 2'
+  status = fclos(iun1)
+  iun2 = 0
+  status = fnom(iun2,'test_namelist','FTN+FMT+OLD',0)
+  rewind(iun2)
+  print *,'(fnom) iun,status =',iun2,status
+  read(iun2,*) str1
+  print *,'"'//trim(str1)//'"'
+  s1 = ""
+  s2 = ""
+  s3 = ""
+  read(iun2,nml=namelist_s)
+  print *,'"'//trim(s1)//'" "'//trim(s2)//'" "'//trim(s3)//'"'
+  read(iun2,*) str2
+  print *,'"'//trim(str2)//'"'
+  status = fclos(iun2)
 
   print *,'========== testing WA functions/subroutines  =========='
   iun = 0

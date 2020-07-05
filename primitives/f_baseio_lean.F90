@@ -27,7 +27,8 @@
 ! are passed as callbacks (address of function to call)
 ! this helps isolate c_baseio from any need to know fortran names and types
 ! ====================================================
-module fnom_helpers
+#define FNOM_OWNER
+module fnom_helpers         ! routines for internal use only
   use ISO_C_BINDING
   implicit none
 #include <librmn_interface.hf>
@@ -37,17 +38,6 @@ module fnom_helpers
       type(C_FUNPTR), intent(IN), value :: qqqfopen
       type(C_FUNPTR), intent(IN), value :: qqqfclos
     end subroutine c_fnom_ext
-    FUNCTION ftnclos(iun) result(status) bind(C,name='F90clos_for_c')
-      import
-      integer(C_INT), intent(IN) :: iun
-      integer(C_INT) :: status
-    end FUNCTION ftnclos
-    FUNCTION qqqf7op_c(iun,c_name,lrec,rndflag,unfflag,lmult,leng) result(status) bind(C,name='QQQf7op_for_c')
-      import
-      integer(C_INT), intent(IN), value :: iun, lrec, rndflag, unfflag, lmult, leng
-      character(C_CHAR), dimension(leng), intent(IN) :: c_name
-      integer(C_INT) :: status
-    end FUNCTION qqqf7op_c
     function cqqqfnom(iun,name,ftyp,flrec,lname,lftyp) result(status) bind(C,name='F_qqqfnom')
       import
       integer(C_INT), intent(IN), value :: iun, lname, lftyp
@@ -56,17 +46,162 @@ module fnom_helpers
       character(C_CHAR), dimension(lftyp), intent(OUT) :: ftyp
       integer(C_INT) :: status
     end function cqqqfnom
-    function c_getfdsc(iun) result(i) bind(C,name='c_getfdsc')
-      import
-      integer(C_INT), intent(IN), value :: iun
-      integer(C_INT) :: i
-    end function c_getfdsc
   end interface
-end module fnom_helpers
+  contains
+  ! close a Fortran file (opened with Fortran open) (normally used as a callback by c_fnom)
+  function ftnclos_c(iun) result(status) bind(C,name='F90clos_for_c') ! for C callback
+    use ISO_C_BINDING
+    implicit none
+    integer(C_INT), intent(IN) :: iun
+    integer(C_INT) :: status
 
-subroutine traceback_from_c() bind(C,name='f_tracebck') ! C code calls f_tracebck()
-!   call tracebck  ! unfortunately does nothing with most compilers
-end subroutine traceback_from_c
+    close(unit = iun)
+    status = 0
+    return
+  end function ftnclos_c
+
+  ! C callable function (called by c_fnom) to address file open operations
+  ! that must be performed by the Fortran library
+  ! passed as a "callback"
+  ! lrec : coming directly from fnom c_fnom call, needs to be multiplied by d77mult
+  function qqqf7op_c(iun,c_name, c_options, lrec, rndflag, unfflag) result(status) bind(C,name='QQQf7op_for_c') ! for C callback
+    use ISO_C_BINDING
+    implicit none
+    integer(C_INT), intent(IN), value :: iun, lrec, rndflag, unfflag
+    character(C_CHAR), dimension(*), intent(IN) :: c_name, c_options  ! C NULL terminated strings
+    integer(C_INT) :: status
+
+    integer i, stat
+    integer, save :: d77mult = 0
+    logical :: opened
+    integer, dimension(5) :: scrap
+
+    inquire (unit=iun, opened=opened, iostat=stat)
+    if(opened) then
+      status = -1
+      print *,'ERROR: Fortran unit',iun,' is already open'
+      return
+    endif
+    if(d77mult == 0) then   ! find value of dmult (1 or 4) (compiler dependent)
+      i = 100
+      opened = .true.
+      do while(opened .and. iun > 1)
+        i = i - 1
+        inquire (unit=i, opened=opened, iostat=stat)
+      enddo
+      open(unit=i,ACCESS='DIRECT',FORM='UNFORMATTED',STATUS='SCRATCH',RECL=5)
+      d77mult = 4                     ! this value if write generates an error
+      write(iun,rec=1,err=1) scrap    ! there will be an error if d77mult needs to be 4 (recl in bytes)
+      d77mult = 1                     ! no error, recl had room for 16 bytes, recl is in words
+  1   close(unit=i)
+  !     print *,'DEBUG: d77mult =',d77mult
+    endif
+
+    status = qqqf7op_plus(iun, c_name, c_options, lrec*d77mult, rndflag ,unfflag)
+    return
+  end function qqqf7op_c
+
+  ! this is called by the C code to set some Fortran I/O setup options (NOT USER CALLABLE)
+  ! iun      : Fortran unit number
+  ! path     : file name
+  ! options  : SCRATCH APPEND OLD R/O
+  ! lrec     : record length for direct access open
+  ! rndflag  : 0 sequential file, 1 random file
+  ! unfflag  : 0 formatted file, 1 unformattted file
+  ! lng_in   : length of path
+  FUNCTION qqqf7op_plus(iun,path,options,lrec,rndflag,unfflag) result(status)
+    use ISO_C_BINDING
+    implicit none
+    integer(C_INT), intent(IN) :: iun, lrec, rndflag ,unfflag
+    character(C_CHAR), dimension(*), intent(IN) :: path, options   ! C NULL terminated strings
+    integer(C_INT) :: status
+  
+    character(len=4096) :: name
+    character(len=16) :: acc, form, action, position, fstat
+    character(len=128) :: optns
+    integer :: i, lng
+!
+    status=0
+!   copy null terminated C strings to Fortran strings
+    i = 1
+    lng = 0
+    name = ' '
+    do while(path(i) .ne. achar(0) .and. i < 4096)   ! copy path to Fortran string
+      lng = lng + 1
+      name(lng:lng) = path(i)
+      i = i + 1
+    enddo
+    i = 1
+    optns = ' '
+    do while(options(i) .ne. achar(0) .and. i < 128) ! copy options to Fortran string
+      optns(i:i) = options(i)
+      i = i + 1
+    enddo
+!
+    if ((name(1:lng).EQ.'input') .OR. (name(1:lng).EQ.'$input')            &
+    &  .OR. (name(1:lng).EQ.'output') .OR. (name(1:lng).EQ.'$output')     &
+    &  .OR. (name(1:lng).EQ.'$in') .OR. (name(1:lng).EQ.'$out'))          &
+    &  then
+      return        ! stdin/stdout, nothing to do
+    endif
+!   set default values for options
+    form     = 'FORMATTED'     ! default values
+    acc      = 'SEQUENTIAL'
+    position = 'REWIND'
+    action   = 'READWRITE'
+    fstat    = 'UNKNOWN'
+!   process options SCRATCH, APPEND, OLD, R/O  (might add others if need be in the future)
+    if (rndflag == 1) acc  = 'DIRECT'          ! already processed by c_fnom
+    if (unfflag == 1) form = 'UNFORMATTED'     ! already processed by c_fnom
+    if( index(optns,'SCRATCH',.false.) > 0 .or. index(optns,'scratch',.false.) > 0 ) then
+      fstat    = 'SCRATCH'
+      name     = 'NoNe'      ! name is irrelevant, make sure to give an acceptable one
+      lng = 4
+    endif
+    if( index(optns,'APPEND',.false.) > 0 .or. index(optns,'append',.false.) > 0 ) then    ! open in "append" mode
+      position = 'APPEND'
+    endif
+    if( index(optns,'OLD',.false.) > 0 .or. index(optns,'old',.false.) > 0 ) then          ! file MUST EXIST
+      fstat    = 'OLD'
+    endif
+    if( index(optns,'R/O',.false.) > 0 .or. index(optns,'r/o',.false.) > 0 ) then          ! file is "read only"
+      fstat    = 'OLD'       ! better exist if file is to be r/o
+      action   = 'READ'
+    endif
+!
+    if(rndflag == 1) then  ! no position nor formatted if random 77
+      if(trim(fstat) == 'SCRATCH') then
+        OPEN(iun                 ,ACCESS='DIRECT',FORM='UNFORMATTED', &
+          STATUS='SCRATCH',ACTION=action,RECL=lrec,ERR=77)
+      else
+        OPEN(iun,FILE=name(1:lng),ACCESS='DIRECT',FORM='UNFORMATTED', &
+          STATUS=fstat    ,ACTION=action,RECL=lrec,ERR=77)
+      endif
+    else                   ! no recl if not random 77, positioning is allowed as well as formatted (if not scratch)
+      if(trim(fstat) == 'SCRATCH') then
+        if(unfflag == 1) &
+          OPEN(iun,ACCESS='SEQUENTIAL',FORM=form,STATUS='SCRATCH', &
+              POSITION=position,ACTION=action              ,ERR=77)
+        if(unfflag == 0) &
+          OPEN(iun,ACCESS='SEQUENTIAL',FORM=form,STATUS='SCRATCH', &
+              POSITION=position,ACTION=action,DELIM='QUOTE',ERR=77)
+      else   ! use quote delimiter if formatted file
+        if(unfflag == 1) &
+          OPEN(iun,FILE=name(1:lng),ACCESS='SEQUENTIAL',FORM=form,STATUS=fstat    , &
+              POSITION=position,ACTION=action              ,ERR=77)
+        if(unfflag == 0) &
+          OPEN(iun,FILE=name(1:lng),ACCESS='SEQUENTIAL',FORM=form,STATUS=fstat    , &
+              POSITION=position,ACTION=action,DELIM='QUOTE',ERR=77)
+      endif
+    endif
+!
+    return
+77  continue
+    print *,'error in qqqf7op_from_c'
+    status = -1
+    return
+  end
+end module fnom_helpers
 
 function fnom(iun,name,opti,reclen) result (status)
   use ISO_C_BINDING
@@ -79,12 +214,33 @@ function fnom(iun,name,opti,reclen) result (status)
 
   character(C_CHAR), dimension(len(trim(name))+1), target :: name1
   character(C_CHAR), dimension(len(trim(opti))+1), target :: opti1
+  logical :: opened
+  integer :: stat, last_unit
+
+  if(iun == 0) then                            ! automatic assign for Fortran files
+    if( index(opti,'FTN',.false.) > 0 .or. &
+        index(opti,'ftn',.false.) > 0 .or. &
+        index(opti,'D77',.false.) > 0 .or. &
+        index(opti,'d77',.false.) > 0) then
+      opened = .true.
+      last_unit = 100
+      do while(opened .and. last_unit > 1)
+        last_unit = last_unit - 1
+        inquire (unit=last_unit, opened=opened, iostat=stat)
+      enddo
+      if( .not. opened) then
+        iun = last_unit
+        print *,'DEBUG: assigning unit =',iun
+      endif
+    endif
+  endif
 
   name1 = transfer(trim(name)//achar(0),name1)
   opti1 = transfer(trim(opti)//achar(0),opti1)
 
-  call c_fnom_ext(C_FUNLOC(qqqf7op_c), C_FUNLOC(ftnclos))
-  status = c_fnom(iun, name1, opti1, reclen)
+  call c_fnom_ext(C_FUNLOC(qqqf7op_c), C_FUNLOC(ftnclos_c))   ! setup callbacks from C
+
+  status = c_fnom(iun, name1, opti1, reclen)                ! get the job done
 end function fnom
 
 function qqqfnom(iun,name,ftyp,flrec) result(status)  ! get filename, properties, record length  info from unit number
@@ -112,238 +268,25 @@ function qqqfnom(iun,name,ftyp,flrec) result(status)  ! get filename, properties
 
 end function qqqfnom
 
-! C callable function (called by c_fnom) to address file open operations
-! that must be performed by the Fortran library
-! passed as a "callback"
-! function qqqf7op_c(iun,c_name,  c_options  ,lrec,rndflag,unfflag,lmult) result(status) bind(C,name='QQQf7op_for_c') ! for C callback
-function   qqqf7op_c(iun,c_name              ,lrec,rndflag,unfflag,lmult,leng) result(status) bind(C,name='QQQf7op_for_c') ! for C callback
-  use ISO_C_BINDING
-  implicit none
-  integer(C_INT), intent(IN), value :: iun, lrec, rndflag, unfflag, lmult, leng
-!   integer(C_INT), intent(IN), value :: iun, lrec, rndflag, unfflag, lmult
-  character(C_CHAR), dimension(leng), intent(IN) :: c_name
-!   character(C_CHAR), dimension(*), intent(IN) :: c_name, c_options
-  integer(C_INT) :: status
-
-  integer lng, i, stat
-  integer, save :: d77mult = 0
-  character(len=4096) :: name
-  integer, external :: qqqf7op
-  logical :: opened
-  integer, dimension(5) :: scrap
-!   integer, external :: qqqf7op_plus
-
-  if(d77mult == 0) then
-    i = 100
-    opened = .true.
-    do while(opened .and. iun > 1)
-      i = i - 1
-      inquire (unit=i, opened=opened, iostat=stat)
-    enddo
-    open(unit=i,ACCESS='DIRECT',FORM='UNFORMATTED',STATUS='SCRATCH',RECL=10)
-    d77mult = 4                     ! this value if write generates an error
-    write(iun,rec=1,err=1) scrap    ! there will be an error if d77mult needs to be 4 (recl in bytes)
-    d77mult = 1                     ! no error, recl had room for 16 bytes, recl is in words
-1   close(unit=i)
-    print *,'DEBUG: d77mult =',d77mult
-  endif
-
-  name = ' '
-  lng = leng
-  do i=1,lng
-    name(i:i) = c_name(i)
-  enddo
-!     qqqf7op_plus(iun,c_name,c_options,lrec,rndflag,unfflag,lmult)
-!          qqqf7op(iun,name            ,lrec,rndflag,unfflag,lmult)
-  status = qqqf7op(iun,name(1:lng)     ,lrec,rndflag,unfflag,d77mult)
-  return
-end function qqqf7op_c
-
-! this is called by the C code to set some Fortran I/O setup options (NOT USER CALLABLE)
-! iun      : Fortran unit number
-! path     : file name
-! options  : SCRATCH APPEND OLD R/O
-! lrec     : see fnom
-! rndflag  : 0 sequential file, 1 random file
-! unfflag  : 0 formatted file, 1 unformattted file
-! lmult    : multiplier for lrec (compiler dependent)
-! lng_in   : length of path
-  FUNCTION qqqf7op_plus(iun,path,options,lrec,rndflag,unfflag,lmult) result(status)
-    use ISO_C_BINDING
-    implicit none
-    integer(C_INT), intent(IN), value :: iun, lrec, lmult, rndflag ,unfflag
-    character(C_CHAR), dimension(*), intent(IN) :: path, options   ! C NULL terminated strings
-    integer(C_INT) :: status
-  
-    character(len=4096) :: name
-    character(len=16) :: acc, form, action, position, fstat
-    character(len=128) :: optns
-    integer :: i, lng
-!
-    status=0
-    i = 1
-    lng = 0
-    name = ''
-    do while(path(i) .ne. achar(0) .and. i < 4096)
-      lng = lng + 1
-      name(lng:lng) = path(i)
-      i = i + 1
-    enddo
-    i = 1
-    optns = ' '
-    do while(options(i) .ne. achar(0) .and. i < 128)
-      optns(i:i) = options(i)
-      i = i + 1
-    enddo
-#if defined(SELF_TEST)
-print *,'qqqf7op_from_c, iun,path,lrec,rndflag,unfflag,lmult,lng',iun,"'"//name(1:lng)//"'",lrec,rndflag,unfflag,lmult,lng
-print *,"      options ='"//trim(optns)//"'"
-#endif
-!
-    if ((name(1:lng).EQ.'input') .OR. (name(1:lng).EQ.'$input')            &
-     &  .OR. (name(1:lng).EQ.'output') .OR. (name(1:lng).EQ.'$output')     &
-     &  .OR. (name(1:lng).EQ.'$in') .OR. (name(1:lng).EQ.'$out'))          &
-     &  then
-!            print *,' STDIN or STDOUT'
-      return
-    endif
-!
-    form     = 'FORMATTED'     ! default values
-    acc      = 'SEQUENTIAL'
-    position = 'REWIND'
-    action   = 'READWRITE'
-    fstat    = 'UNKNOWN'
-!
-    if (rndflag == 1) acc  = 'DIRECT'
-    if (unfflag == 1) form = 'UNFORMATTED'
-    if( index(optns,'SCRATCH',.false.) > 0 .or. index(optns,'scratch',.false.) > 0 ) then
-      fstat    = 'SCRATCH'
-      name     = 'NoNe'      ! name is irrelevant, make sure to give an acceptable one
-      lng = 4
-    endif
-    if( index(optns,'APPEND',.false.) > 0 .or. index(optns,'append',.false.) > 0 ) then
-      position = 'APPEND'
-    endif
-    if( index(optns,'OLD',.false.) > 0 .or. index(optns,'old',.false.) > 0 ) then
-      fstat    = 'OLD'
-    endif
-    if( index(optns,'R/O',.false.) > 0 .or. index(optns,'r/o',.false.) > 0 ) then
-      fstat    = 'OLD'       ! better exist if file is to be r/o
-      action   = 'READ'
-    endif
-!
-#if defined(SELF_TEST)
-print *,trim(acc)//'+'//trim(form)//'+'//trim(fstat)//'+'//trim(position)//'+'//trim(action)
-print *,'recl =',lrec*lmult
-#endif
-    if(rndflag == 1) then  ! no position nor form if random 77
-      if(trim(fstat) == 'SCRATCH') then
-        OPEN(iun                 ,ACCESS='DIRECT',FORM='UNFORMATTED',STATUS='SCRATCH',ACTION=action,RECL=lrec*lmult,ERR=77)
-      else
-        OPEN(iun,FILE=name(1:lng),ACCESS='DIRECT',FORM='UNFORMATTED',STATUS=fstat    ,ACTION=action,RECL=lrec*lmult,ERR=77)
-      endif
-    else                   ! no recl if not random 77
-      if(trim(fstat) == 'SCRATCH') then
-        OPEN(iun                 ,ACCESS='SEQUENTIAL',FORM=form,STATUS='SCRATCH',POSITION=position,ACTION=action,ERR=77)
-      else
-        OPEN(iun,FILE=name(1:lng),ACCESS='SEQUENTIAL',FORM=form,STATUS=fstat    ,POSITION=position,ACTION=action,ERR=77)
-      endif
-    endif
-!
-    return
-77  continue
-print *,'error in qqqf7op_from_c'
-    status = -1
-    return
-  end
-
-! function to perform file open operations that must be performed by the Fortran library
-INTEGER FUNCTION qqqf7op(iun,name,lrec,rndflag,unfflag,lmult)
-  use fnom_helpers
-  implicit none
-  integer(C_INT), intent(IN)   :: iun, lrec, lmult
-  character(len=*), intent(IN) :: name
-  integer(C_INT), intent(IN)   :: rndflag, unfflag
-
-  integer lng
-#if defined(SELF_TEST)
-print *,'DEBUG: (qqqf7op) iun,lrec,rndflag,unfflag,lmult =',iun,lrec,rndflag,unfflag,lmult
-#endif
-  qqqf7op=0
-  lng = len(trim(name))
-!  print *,'opening file ',name(1:lng),' as unit ',iun
-!  print *,'lrec=',lrec,' flags = ',rndflag,unfflag,' lmult=',lmult
-!  print *,'len=',lng
-  if (rndflag.eq.1) then
-    if (unfflag.eq.1) then
-!     print *,'ACCESS=DIRECT,RECL=',lrec
-      OPEN(iun,FILE=name(1:lng),ACCESS='DIRECT',RECL=lrec*lmult,ERR=77)
-    else
-!     print *,'ACCESS=DIRECT,RECL=',lrec*4
-      OPEN(iun,FILE=name(1:lng),ACCESS='DIRECT',FORM='FORMATTED',RECL=lrec*4,ERR=77)
-    endif
-  else
-    if ((name(1:lng).EQ.'input') .OR. (name(1:lng).EQ.'$input')            &
-       &  .OR. (name(1:lng).EQ.'output') .OR. (name(1:lng).EQ.'$output')   &
-       &  .OR. (name(1:lng).EQ.'$in') .OR. (name(1:lng).EQ.'$out')) then
-!            print *,' STDIN or STDOUT'
-      return
-    else
-      if (unfflag.eq.1) then
-!       print *,'UNFORMATTED open'
-        OPEN(iun,FILE=name(1:lng),FORM='UNFORMATTED',ERR=77)
-      else
-!              print *,'FORMATTED open'
-        OPEN(iun,FILE=name(1:lng),FORM='FORMATTED',DELIM='QUOTE',ERR=77)        
-      endif
-    endif
-  endif
-  return
-77 continue
-  qqqf7op = -1
-  return
-end
-
-! close a Fortran file
-integer FUNCTION ftnclos(iun)
-  implicit none
-  integer iun
-#if defined(SELF_TEST)
-print *,'closing Fortran file',iun
-#endif
-  ftnclos = 0
-  CLOSE(iun)
-  return
-end
-
-! close a Fortran file (opened with Fortran open) (normally used as a callback by c_fnom)
-integer(C_INT) function ftnclos_c(iun) bind(C,name='F90clos_for_c') ! for C callback
-  use ISO_C_BINDING
-  implicit none
-  integer(C_INT), intent(IN) :: iun
-
-  ftnclos_c = 0
-  close(iun)
-  return
-end
-
 ! close a file opened by fnom
-integer function fclos(iun)
+function fclos(iun) result(status)
   use fnom_helpers
   implicit none
   integer, intent(IN) :: iun
+  integer :: status
 
-  fclos = c_fclos(iun)
+  status = c_fclos(iun)
   return
-end
+end function fclos
 
-integer function fretour(iun)
+function fretour(iun) result(status)
+  integer :: status
 ! ARGUMENTS: in iun   unit number, ignored
 ! RETURNS: zero.
 ! Kept only for backward compatibility. NO-OP
-  if(iun .ne. -999999999) fretour = 0
+  if(iun .ne. -99999999) status = 0
   return
-end
+end function fretour
 
 integer function longueur(nom)    ! legacy, length of a Fortran character string
   implicit none

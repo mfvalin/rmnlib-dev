@@ -48,7 +48,6 @@
 
 #define FNOM_OWNER
 #include "../INTRALIB_INCLUDES/fnom.h"
-#define LEAN_BASEIO
 #include "wafile64.h"
 
 #if defined(__linux__) || defined(__AIX__)
@@ -124,7 +123,7 @@ void static dump_file_entry(int i)
       fprintf(stderr,"FGFDT[%d] ",i);
       fprintf(stderr,"file_name=%s subname=%s file_type=%s\n",
               FGFDT[i].file_name,FGFDT[i].subname,FGFDT[i].file_type);
-      fprintf(stderr,"iun=%d,fd=%d,size=%ld,esize=%ld,lrec=%d,flags=%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+      fprintf(stderr,"iun=%d,fd=%d,size=%ld,esize=%ld,lrec=%d,flags=%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
               FGFDT[i].iun,
               FGFDT[i].fd,
               FGFDT[i].file_size,
@@ -137,6 +136,7 @@ void static dump_file_entry(int i)
               FGFDT[i].attr.rnd?"+RND":"+SEQ",
               FGFDT[i].attr.wa?"+WA":"",
               FGFDT[i].attr.wap?"+WAP":"",
+              FGFDT[i].attr.sparse?"+SPARSE":"",
               FGFDT[i].attr.ftn?"+FTN":"",
               FGFDT[i].attr.unf?"+UNF":"+FMT",
               FGFDT[i].attr.read_only?"+R/O":"+R/W",
@@ -199,6 +199,7 @@ static void reset_file_entry(int i){
    FGFDT[i].attr.burp      = 0;
    FGFDT[i].attr.rnd       = 0;
    FGFDT[i].attr.wa        = 0;
+   FGFDT[i].attr.sparse    = 0;
    FGFDT[i].attr.wap       = 0;
    FGFDT[i].attr.ftn       = 0;
    FGFDT[i].attr.unf       = 0;
@@ -387,6 +388,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
   FGFDT[i].attr.rnd=0;
   FGFDT[i].attr.wa=0;
   FGFDT[i].attr.wap=0;
+  FGFDT[i].attr.sparse=0;
   FGFDT[i].attr.ftn=0;
   FGFDT[i].attr.unf=0;
   FGFDT[i].attr.read_only=0;
@@ -409,9 +411,11 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
                                                        FGFDT[i].attr.rnd=1; }
   if (strstr(type,"RND")    || strstr(type,"rnd"))     FGFDT[i].attr.rnd=1;
   if (strstr(type,"WA")     || strstr(type,"wa"))    { FGFDT[i].attr.rnd=1;
-                                                       FGFDT[i].attr.wap=0; }/* wa attribute will be set by waopen */
+                                                       FGFDT[i].attr.wap=0; }  // wa attribute will be set by waopen
   if (strstr(type,"WAP")    || strstr(type,"wap"))   { FGFDT[i].attr.wap=1;
                                                        FGFDT[i].attr.rnd=1; }
+  if (strstr(type,"SPARSE") || strstr(type,"sparse")){ FGFDT[i].attr.sparse=1;
+                                                       FGFDT[i].attr.rnd=1; } // sparse implies rnd
   if (strstr(type,"FTN")    || strstr(type,"ftn"))   { FGFDT[i].attr.ftn=1;
                                                        FGFDT[i].attr.rnd=0; }
   if (strstr(type,"UNF")    || strstr(type,"unf"))   { FGFDT[i].attr.unf=1;
@@ -515,18 +519,17 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
 /*
  *   check for @file (@filename)
  */
-  if (nom[0]=='@') {
+  if (nom[0]=='@') {                                      // implied lookup cascade
      char filename[1024];
-//      struct stat etat,etat2,etat3;
      strcpy(filename,FGFDT[i].file_name);
 
-     if (access(filename,F_OK) == -1) {         /* no local file */
+     if (access(filename,F_OK) == -1) {                   // 1 - not a local file
        sprintf(filename,"%s/datafiles/constants/%s",AFSISIO,FGFDT[i].file_name);
 
-       if (access(filename,F_OK)  == -1) {                /* not under AFSISIO */
+       if (access(filename,F_OK)  == -1) {                // 2 - not under $AFSISIO/datafiles/constants/
           sprintf(filename,"%s/data/%s",ARMNLIB,FGFDT[i].file_name);
 
-          if (access(filename,F_OK)  == -1) {             /* not under ARMNLIB either */
+          if (access(filename,F_OK)  == -1) {             // 3 - nor under $ARMNLIB/data/
              return(-1);
              }
           }
@@ -552,13 +555,13 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
      int32_t lrec77=lrec;
      int32_t rndflag77 = FGFDT[i].attr.rnd;
      int32_t unfflag77 = FGFDT[i].attr.unf;
-//      int32_t lmult = D77MULT;
-     ier = open64(FGFDT[i].file_name,O_RDONLY);
-     if (ier <=0) {
+//      int32_t lmult = D77MULT;       // no longer necessary, *f90_open can figure it out
+     ier = open64(FGFDT[i].file_name,O_RDONLY);    // if file exists, get its size
+     if (ier <=0) {                                // file does not exist
         FGFDT[i].file_size = -1;
         FGFDT[i].eff_file_size = -1;
         }
-     else {
+     else {                                        // file exists, get size
         LLSK dimm=0;
         dimm = LSEEK(ier,dimm,SEEK_END);
         FGFDT[i].file_size = dimm / sizeof(int32_t);
@@ -570,7 +573,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
   else if (FGFDT[i].attr.stream || FGFDT[i].attr.std || FGFDT[i].attr.burp || FGFDT[i].attr.wa ||
           (FGFDT[i].attr.rnd && !FGFDT[i].attr.ftn) ) {
      ier = c_waopen2(liun);
-     FGFDT[i].attr.wa = 0;   /* will be set by waopen */
+     FGFDT[i].attr.wa = 0;   // reset flag, it will be set by later call to waopen (flag set means file already opened by waopen)
   }
     
   if (ier == 0) FGFDT[i].open_flag = 1;
@@ -607,7 +610,7 @@ int c_fclos(int iun)
    ier=0;
    if (FGFDT[i].open_flag){
       if (FGFDT[i].attr.ftn)
-         ier = (*f90_clos)(&iun77);   /* need to get this fortran runtime library done via a callback */
+         ier = (*f90_clos)(&iun77);   // need to get this fortran runtime library done via a callback
       else
          ier = close(FGFDT[i].fd);
       }
@@ -861,23 +864,23 @@ int c_wawrit64(int iun,void *buf, uint64_t adr,unsigned int nmots, unsigned int 
                      iun,FGFDT[i].file_name);
       return(-1);
       }
-   if ( adr > FGFDT[i].file_size+WA_HOLE ) {
+   if ( (adr > FGFDT[i].file_size+WA_HOLE) && (FGFDT[i].attr.sparse == 0) ) {
       fprintf(stderr,"c_wawrit error: attempt to write beyond EOF+%d\n",WA_HOLE);
       fprintf(stderr,"                unit = %d, adr=%lu > file_size=%ld\n",
                      iun,adr,FGFDT[i].file_size);
       fprintf(stderr,"                filename=%s\n",FGFDT[i].file_name);
       exit(1);
       }
-   if ( adr > FGFDT[i].file_size+1 ){
+   if ( (adr > FGFDT[i].file_size+1) && (FGFDT[i].attr.sparse == 0) ){   // fill hole with 0 bytes if not sparse
       count = adr-FGFDT[i].file_size;
       ladr = FGFDT[i].file_size+1;
       qqcwawr64(scrap,ladr,count,i);
       }
-   if (*little_endian) swap_buffer_endianness(bufswap,nmots);
+   if (*little_endian) swap_buffer_endianness(bufswap,nmots);  // destructive in-place byte swap
    count = nmots;
    qqcwawr64((int32_t *)buf,adr,nmots,i);
-   if (*little_endian) swap_buffer_endianness(bufswap,nmots);
-   return( nmots>0 ? nmots : 0);
+   if (*little_endian) swap_buffer_endianness(bufswap,nmots);  // undo destructive in-place byte swap
+   return( nmots > 0 ? nmots : 0);
 }
 void c_wawrit(int iun,void *buf,unsigned int adr,int nmots)
 {
@@ -1421,12 +1424,12 @@ uint32_t hljust_ (uint32_t *moth, int32_t *ncar){ return hljust(moth, ncar) ;}
 ***function qqcwawr
 *
 *OBJECT: Writes in a word adressable file. 
-*        Active part of c_wawrit2.
+*        Active part of c_wawrit2 / c_wawrit64.
 *
-*ARGUMENTS: in lfd    file descriptor
+*ARGUMENTS: in indf   file index in file table
 *           in buf    contains data to write
-*           in wadr   file address in words  (origin 1)
-*           in nmots  number of words to write
+*           in ladr   file address in words  (origin 1)
+*           in lnmots number of 32 bit words to write
 *           in indf   index in the master file table
 *
 */
@@ -1466,7 +1469,6 @@ static void qqcwawr64(int32_t *buf,uint64_t ladr, int lnmots,int indf)
 		FGFDT[indf].file_name,buf,ladr,lnmots,nwritten,errno);
 	fprintf(stderr, "*** Contactez un membre de la section informatique de RPN ***\n");
 	fprintf(stderr, "*** Seek support from RPN informatics section ***\n");
-	/*            memorymap(1); */
 	perror("qqcwawr");
 	exit(1);
     }
@@ -1505,13 +1507,12 @@ static void qqcwawr64(int32_t *buf,uint64_t ladr, int lnmots,int indf)
 ***function qqcward
 *
 *OBJECT: Reads a word addressable file.
-*        Active part of c_waread2.
+*        Active part of c_waread2 / c_waread64.
 *
-*ARGUMENTS: in  lfd     file descriptor
+*ARGUMENTS: in  indf    index of file in the master file table
 *           out buf     will contain data read
-*           in  wadr    file address in words (origin 1)
-*           in  lnmots  number of words to read
-*           in  indf    index of file in the master file table
+*           in  ladr    file address in words (origin 1)
+*           in  lnmots  number of 32 bit words to read
 *
 */
 static void qqcward64(int32_t *buf,uint64_t ladr,int lnmots,int indf)
@@ -1542,7 +1543,8 @@ static void qqcward64(int32_t *buf,uint64_t ladr,int lnmots,int indf)
   }
 }
 
-void test_c_fnom()
+// small embedded test routine
+void TEST_c_fnom()
 {
   intptr_t iun = 600;
   int iun2 = 0;
@@ -1555,13 +1557,11 @@ void test_c_fnom()
   fprintf(stderr,"test_c_fnom: status=%d, iun=%d\n",status,iun2);
   fprintf(stderr,"========== test_c_fnom  END  ==========\n");
 }
-void test_c_fnom_() {test_c_fnom() ; }
-void test_c_fnom__() {test_c_fnom() ; }
 
 #if defined(SELF_TEST)
 int main(int argc, char **argv)
 {
-  test_c_fnom();
+  TEST_c_fnom();
 }
 // void f_tracebck(){}
 #endif

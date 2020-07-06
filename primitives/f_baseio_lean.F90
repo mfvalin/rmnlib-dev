@@ -17,21 +17,18 @@
 ! * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ! * Boston, MA 02111-1307, USA.
 ! */
-!int c_fnom(int *iun,char *nom,char *type,int lrec)
-!ftnword f77name(fnom)(ftnword *iun,char *nom,char *type,ftnword *flrec,F2Cl l1,F2Cl l2)
-! ====================================================
-! fnom (open a file with attributes), see c_fnom for
-! argument description
-! this is a Fortran interface to the active routine written in C.
-! the fortran functions (qqqfopen,qqqfclos) that c_fnom may have to call
-! are passed as callbacks (address of function to call)
-! this helps isolate c_baseio from any need to know fortran names and types
 ! ====================================================
 #define FNOM_OWNER
 module fnom_helpers         ! routines for internal use only
   use ISO_C_BINDING
   implicit none
 #include <librmn_interface.hf>
+! ====================================================
+! this is a Fortran interface to the active routine written in C.
+! the fortran functions (qqqfopen,qqqfclos) that c_fnom may have to call
+! are passed as callbacks (address of function to call)
+! this helps isolate c_baseio from any need to know fortran names and types
+! ====================================================
   interface
     subroutine c_fnom_ext(qqqfopen,qqqfclos) bind(C,name='c_fnom_externals')
       import
@@ -104,8 +101,8 @@ module fnom_helpers         ! routines for internal use only
   ! this is called by the C code to set some Fortran I/O setup options (NOT USER CALLABLE)
   ! iun      : Fortran unit number
   ! path     : file name
-  ! options  : SCRATCH APPEND OLD R/O
-  ! lrec     : record length for direct access open
+  ! options  : SCRATCH APPEND OLD R/O (other options are ignored)
+  ! lrec     : record length for direct access open (includes d77mult factor)
   ! rndflag  : 0 sequential file, 1 random file
   ! unfflag  : 0 formatted file, 1 unformattted file
   ! lng_in   : length of path
@@ -202,7 +199,31 @@ module fnom_helpers         ! routines for internal use only
     return
   end
 end module fnom_helpers
-
+!
+! open a file with some options (files known or not to Fortran)
+!
+! iun        : if zero upon entry, fnom will find an appropriate unit number
+! name       : file name (character string)
+!              some_name@file_path refers to file some_name inside CMCARC archive file_path
+! opti       : list of + separated options (upper case or lower case)
+!              STD         RPN "standard" file (implies WA+RND) (non Fortran)
+!              FTN         Fortran file (UNF, FMT, D77, APPEND may be used as other attributes)
+!              D77         Fortran direct access file (reclen must be non zero)
+!              UNF         Fortran sequential unformatted file (default is formatted)
+!              RND         random access file (normally used with STD)  (non Fortran)
+!              WA          Word Addressable file (Big Endian) (implies RND)  (non Fortran)
+!              STREAM      stream file (non Fortran, no record markers, Big Endian)
+!              BURP        Meteorological reports file  (non Fortran)
+!              APPEND      file is opened in "append" mode (write at end)
+!              OLD         file must exist (applies to all files)
+!              R/O         file is Read Only (default is Read/Write) (applies to all files) (implies OLD)
+!              R/W         file is Read Write (default) (applies to all files)
+!              SCRATCH     File will be removed when closed (applies to all files)
+!              SPARSE      Unix WA sparse file (may be written into far beyond end of file)  (non Fortran)
+!              ex.   STD+RND+OLD+R/W open existing random standard file for reading and writing
+!                    FTN+UNF         open Fortran sequential file for reading and writing , create it if it does not exist
+! reclen     : record length in 4 byte units for Fortran D77 file records (should be zero otherwise, mostly ignored)
+!
 function fnom(iun,name,opti,reclen) result (status)
   use ISO_C_BINDING
   use fnom_helpers
@@ -243,6 +264,10 @@ function fnom(iun,name,opti,reclen) result (status)
   status = c_fnom(iun, name1, opti1, reclen)                ! get the job done
 end function fnom
 
+! iun   : file unit
+! name  : file name
+! ftyp  : file options string
+! flrec : record length, as specified in call to fnom/c_fnom
 function qqqfnom(iun,name,ftyp,flrec) result(status)  ! get filename, properties, record length  info from unit number
   use ISO_C_BINDING
   use fnom_helpers
@@ -258,7 +283,7 @@ function qqqfnom(iun,name,ftyp,flrec) result(status)  ! get filename, properties
 
   lname = len(name)
   lftyp = len(ftyp)
-  status = cqqqfnom(iun,name1,ftyp1,flrec,lname,lftyp)
+  status = cqqqfnom(iun,name1,ftyp1,flrec,lname,lftyp)  ! get job done by C function, blank padded
   do i = 1 , lftyp
     ftyp(i:i) = ftyp1(i)
   enddo
@@ -279,12 +304,12 @@ function fclos(iun) result(status)
   return
 end function fclos
 
+! no longer useful, NO-OP, legacy
+! always returns 0
+! iun : Fortran unit number
 function fretour(iun) result(status)
   integer :: status
-! ARGUMENTS: in iun   unit number, ignored
-! RETURNS: zero.
-! Kept only for backward compatibility. NO-OP
-  if(iun .ne. -99999999) status = 0
+  if(iun .ne. -99999999) status = 0  ! idiot test to prevent compiler warning about unused argument
   return
 end function fretour
 
@@ -297,14 +322,17 @@ integer function longueur(nom)    ! legacy, length of a Fortran character string
 END
 ! ====================================================
 !  waopen/waclos waread/waread64/wawrit/wawrit64
-!   random access by word (4 bytes) routines
+!   random access by word (32 bit) routines
 !   these routines take care of endian conversion
-!   the file contents are always BIG-ENDIAN (4 bytes)
-! IUN(IN)     : fortran unit number
-! BUF(IN/OUT) : array to write from or read into
-! NMOTS(IN)   : number of "words" to read (word = 4 bytes)
-! ADR(IN)     : address of first word for transfer
+!   the file contents are always BIG-ENDIAN (32 bit units)
+! IUN(IN)       : fortran unit number
+! BUF(IN/OUT)   : array to write from or read into
+! NMOTS(IN)     : number of "words" to read (word = 4 bytes)
+! ADR(IN)       : address of first word for transfer
+!                 32 bit integer (waread, wawrit)
+!                 64 bit integer (waread64, wawrit64)
 ! PARTITION(IN) : deferred implementation (partition 0 only for now)
+!                 (waread64, wawrit64)
 !               file starts at word #1
 ! ====================================================
 subroutine waopen(iun)    ! open a Word Addressable (WA) file
@@ -333,7 +361,7 @@ print *,'waread, adr, nmots',adr,nmots
   call c_waread(iun,C_LOC(buf),adr,nmots)
 end subroutine waread
 
-function waread64(iun,buf,adr,nmots,partition) result(nw32)  ! same as waread, but supports larger files
+function waread64(iun,buf,adr,nmots,partition) result(nw32)  ! same as waread, but supports large files
   use fnom_helpers
   implicit none
   integer(C_INT), intent(IN) :: iun, nmots
@@ -355,7 +383,7 @@ subroutine wawrit(iun,buf,adr,nmots)                         ! write into a Word
   call c_wawrit(iun,C_LOC(buf),adr,nmots)
 end subroutine wawrit
 
-function wawrit64(iun,buf,adr,nmots,partition) result(nw32)  ! same as wawrit, but supports larger files
+function wawrit64(iun,buf,adr,nmots,partition) result(nw32)  ! same as wawrit, but supports large files
   use fnom_helpers
   implicit none
   integer(C_INT), intent(IN) :: iun, nmots
@@ -366,7 +394,9 @@ function wawrit64(iun,buf,adr,nmots,partition) result(nw32)  ! same as wawrit, b
 
   nw32 = c_wawrit64(iun,C_LOC(buf),adr,nmots,partition)
 end function wawrit64
-
+!
+! ====================================================
+! return 1 if file exists, 0 otherwise
 function existe(name) result(status)
   use fnom_helpers
   implicit none
@@ -379,6 +409,7 @@ function existe(name) result(status)
   return
 end function existe
 
+! get C file descriptor associated to unit iun (-1 if there is none)
 function getfdsc(iun) result(fd)
   use fnom_helpers
   implicit none
@@ -388,6 +419,7 @@ function getfdsc(iun) result(fd)
   fd = c_getfdsc(iun)
 end function getfdsc
 
+! get size of file in 512 word (32 bit) blocks
 function numblks(iun) result(nblks)
   use fnom_helpers
   implicit none
@@ -397,6 +429,7 @@ function numblks(iun) result(nblks)
   nblks = c_numblks(iun)
 end function numblks
 
+! get size of file in word (32 bit) units
 function wasize(iun) result(nwds32)
   use fnom_helpers
   implicit none

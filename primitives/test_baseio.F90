@@ -10,6 +10,10 @@ program test
   character(len=128) :: str1, str2
   character(len=16) :: s1, s2, s3
   namelist /namelist_s/ s1, s2, s3
+  interface
+    subroutine test_c_fnom() bind(C,name='TEST_c_fnom')
+    end subroutine test_c_fnom
+  end interface
 
   s1 = 'string no 1'
   s2 = 'string no 2'

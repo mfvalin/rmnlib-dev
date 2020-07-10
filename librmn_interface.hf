@@ -92,11 +92,16 @@ interface
     integer(C_INT), intent(IN), value :: iun
     integer(C_INT) :: i
   end function c_numblks
-  function c_wasize(iun) result(i) bind(C,name='c_wasize')
+  function c_wasize(iun) result(sz) bind(C,name='c_wasize')
     import
     integer(C_INT), intent(IN), value :: iun
-    integer(C_INT) :: i
+    integer(C_INT) :: sz
   end function c_wasize
+  function c_wasize64(iun) result(sz) bind(C,name='c_wasize64')
+    import
+    integer(C_INT), intent(IN), value :: iun
+    integer(C_LONG_LONG) :: sz
+  end function c_wasize64
   function c_existe(name) result(status) bind(C,name='C_existe')
     import
     type(C_PTR), intent(IN) :: name

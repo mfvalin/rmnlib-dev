@@ -251,7 +251,7 @@ function fnom(iun,name,opti,reclen) result (status)
       enddo
       if( .not. opened) then
         iun = last_unit
-        print *,'DEBUG: assigning unit =',iun
+!         print *,'DEBUG: assigning unit =',iun
       endif
     endif
   endif
@@ -394,6 +394,51 @@ function wawrit64(iun,buf,adr,nmots,partition) result(nw32)  ! same as wawrit, b
 
   nw32 = c_wawrit64(iun,C_LOC(buf),adr,nmots,partition)
 end function wawrit64
+! ====================================================
+!  LEGACY routines, probably not used any more
+!     openda/closda readda/writda/checda
+!     "asynchronous" random access by block routines
+!     (the current implementation is SYNCHRONOUS)
+! IUN(IN)     : fortran unit number
+! BUF(IN/OUT) : array to write from or read into
+! NS          : number of "sectors" (512 x 32 bit words)
+! IS          : address of first "sector" for transfer
+!               file starts at sector #1
+!   these routines take care of endian conversion
+!   the file contents are always BIG-ENDIAN (32 bit units)
+! ====================================================
+subroutine openda(iun)
+  use ISO_C_BINDING
+  implicit none
+  integer(C_INT), intent(IN) :: iun
+  call waopen(iun)
+end subroutine openda
+subroutine readda(iun,buf,ns,is)
+  use fnom_helpers
+  implicit none
+  integer(C_INT), intent(IN) :: iun, ns, is
+  integer(C_INT), intent(OUT), dimension(*), target :: buf
+  call c_waread(iun,C_LOC(buf),(is-1)*512+1,ns*512)
+end subroutine readda
+subroutine writda(iun,buf,ns,is)
+  use fnom_helpers
+  implicit none
+  integer(C_INT), intent(IN) :: iun, ns, is
+  integer(C_INT), intent(IN), dimension(*), target :: buf
+  call c_wawrit(iun,C_LOC(buf),(is-1)*512+1,ns*512)
+end subroutine writda
+subroutine checda(iun)
+  use ISO_C_BINDING
+  implicit none
+  integer(C_INT), intent(IN) :: iun
+  if(iun < 0) print *,'ERROR: (checda) invalid Fortran unit',iun
+end subroutine checda
+subroutine closda(iun)
+  use ISO_C_BINDING
+  implicit none
+  integer(C_INT), intent(IN) :: iun
+  call waclos(iun)
+end subroutine closda
 !
 ! ====================================================
 ! return 1 if file exists, 0 otherwise

@@ -1,6 +1,7 @@
 program test
   use ISO_C_BINDING
   implicit none
+#include <iso_c_binding_extras.hf>
 #include <librmn_interface.hf>
   integer, external :: wawrit64, waread64
   integer :: iun, status, i, r64, w64, iund77, iun1, iun2
@@ -34,36 +35,60 @@ program test
 
   print *,'========== case conversion if no lower case character =========='
   iun1 = 21
-  print *,'ABCDEF, expecting abcdef'
   status = fnom(iun1,'ABCDEF','FTN+FMT',0)
+  if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
-  call system("ls -l [Aa]*")
-  call system("rm -f [Aa]*")
-  print *,'./ABCDEF.01+, expecting abcdef.01+'
+  if(status .ne. 0) goto 777                     ! error
+  if(c_existe('abcdef'//achar(0)) == 0) goto 777
+
   status = fnom(iun1,'./ABCDEF.01+','FTN+FMT',0)
+  if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
-  call system("ls -l [Aa]*")
-  call system("rm -f [Aa]*")
-  print *,'./ABCDEF_01, expecting abcdef_01'
+  if(status .ne. 0) goto 777                     ! error
+  if(c_existe('abcdef.01+'//achar(0)) == 0) goto 777
+
   status = fnom(iun1,'./ABCDEF_01','FTN+FMT',0)
+  if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
-  call system("ls -l [Aa]*")
-  call system("rm -f [Aa]*")
-  print *,'ABCDEF_02, expecting abcdef_02'
+  if(status .ne. 0) goto 777                     ! error
+  if(c_existe('abcdef_01'//achar(0)) == 0) goto 777
+
   status = fnom(iun1,'ABCDEF_02','FTN+FMT',0)
+  if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
-  call system("ls -l [Aa]*")
-  call system("rm -f [Aa]*")
-  print *,'aBCDEF, expecting aBCDEF'
+  if(status .ne. 0) goto 777                     ! error
+  if(c_existe('abcdef_02'//achar(0)) == 0) goto 777
+
   status = fnom(iun1,'aBCDEF','FTN+FMT',0)
+  if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
-  call system("ls -l [Aa]*")
-  call system("rm -f [Aa]*")
-  print *,'ABCDEf, expecting ABCDEf'
+  if(status .ne. 0) goto 777                     ! error
+  if(c_existe('aBCDEF'//achar(0)) == 0) goto 777
+
   status = fnom(iun1,'ABCDEf','FTN+FMT',0)
+  if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
-  call system("ls -l [Aa]*")
-  call system("rm -f [Aa]*")
+  if(status .ne. 0) goto 777                     ! error
+  if(c_existe('ABCDEf'//achar(0)) == 0) goto 777
+
+  print *,'PASSED'
+
+  print *,'========== testing file removal  =========='
+
+  if(c_unlink('abcdef'//achar(0)) /= 0) goto 777
+  if(c_existe('abcdef'//achar(0)) == 1) goto 777
+  if(c_unlink('abcdef.01+'//achar(0)) /= 0) goto 777
+  if(c_existe('abcdef.01+'//achar(0)) == 1) goto 777
+  if(c_unlink('abcdef_01'//achar(0)) /= 0) goto 777
+  if(c_existe('abcdef_01'//achar(0)) == 1) goto 777
+  if(c_unlink('abcdef_02'//achar(0)) /= 0) goto 777
+  if(c_existe('abcdef_02'//achar(0)) == 1) goto 777
+  if(c_unlink('aBCDEF'//achar(0)) /= 0) goto 777
+  if(c_existe('aBCDEF'//achar(0)) == 1) goto 777
+  if(c_unlink('ABCDEf'//achar(0)) /= 0) goto 777
+  if(c_existe('ABCDEf'//achar(0)) == 1) goto 777
+
+  print *,'PASSED'
 
   print *,'========== testing formatted I/O + namelist  =========='
   iun1 = 0
@@ -90,6 +115,8 @@ program test
   read(iun2,*) str2
   if( trim(str2) .ne. 'Line no 2' ) goto 777
   status = fclos(iun2)
+  if(c_unlink('test_namelist'//achar(0)) /= 0) goto 777
+  if(c_existe('test_namelist'//achar(0)) == 1) goto 777
   print *,'PASSED'
 
   print *,'========== testing WA functions/subroutines  =========='
@@ -151,6 +178,8 @@ program test
   ladr = (ladr + 511)/512
   if( lsize .ne. ladr ) goto 777
   call waclos(iun)
+  if(c_unlink('/tmp/Sparse'//achar(0)) /= 0) goto 777
+  if(c_existe('/tmp/Sparse'//achar(0)) == 1) goto 777
   print *,'PASSED'
 
   print *,'========== testing DA functions/subroutines  =========='
@@ -202,10 +231,12 @@ program test
 11 format(A,12I10)
   status = fclos(iund77)
   if(status .ne. 0) goto 777                     ! error
+  if(c_unlink('/tmp/Scrap'//achar(0)) /= 0) goto 777
+  if(c_existe('/tmp/Scrap'//achar(0)) == 1) goto 777
   print *,'PASSED'
 
   print *,'========== testing Fortran formatted IO  =========='
-  print *,'==========   writing    =========='
+!   print *,'==========   writing    =========='
   iun1 = 0
   status = fnom(iun1,'/tmp/Scrap1','FTN+FMT',0)
   if(status .ne. 0) goto 777                     ! error
@@ -214,7 +245,7 @@ program test
 100 format(A10)
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
-  print *,'========== reading back =========='
+!   print *,'========== reading back =========='
   iun1 = 0
   status = fnom(iun1,'/tmp/Scrap1','FTN+FMT+OLD',0)
   if(status .ne. 0) goto 777                     ! error
@@ -225,10 +256,12 @@ program test
   if(trim(str1) .ne. "0123456789" .or. trim(str2) .ne. "abcdefghij") goto 777
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
+  if(c_unlink('/tmp/Scrap1'//achar(0)) /= 0) goto 777
+  if(c_existe('/tmp/Scrap1'//achar(0)) == 1) goto 777
   print *,'PASSED'
 
   print *,'========== testing Fortran unformatted IO  =========='
-  print *,'==========   writing    =========='
+!   print *,'==========   writing    =========='
   iun2 = 0
   status = fnom(iun2,'/tmp/Scrap2','FTN+UNF',0)
   if(status .ne. 0) goto 777                     ! error
@@ -236,7 +269,7 @@ program test
   write(iun2)"abcdefgh"
   status = fclos(iun2)
   if(status .ne. 0) goto 777                     ! error
-  print *,'========== reading back =========='
+!   print *,'========== reading back =========='
   iun2 = 0
   status = fnom(iun2,'/tmp/Scrap2','FTN+UNF+OLD',0)
   if(status .ne. 0) goto 777                     ! error
@@ -247,6 +280,8 @@ program test
   if(trim(str1) .ne. "01234567" .or. trim(str2) .ne. "abcdefgh") goto 777
   status = fclos(iun2)
   if(status .ne. 0) goto 777                     ! error
+  if(c_unlink('/tmp/Scrap2'//achar(0)) /= 0) goto 777
+  if(c_existe('/tmp/Scrap2'//achar(0)) == 1) goto 777
   print *,'PASSED'
 
   goto 888

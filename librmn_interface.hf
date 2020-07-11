@@ -104,7 +104,7 @@ interface
   end function c_wasize64
   function c_existe(name) result(status) bind(C,name='C_existe')
     import
-    type(C_PTR), intent(IN) :: name
+    character(C_CHAR), dimension(*), intent(IN) :: name
     integer(C_INT) :: status
   end function c_existe
   subroutine c_waopen(iun) bind(C,name='c_waopen')

@@ -233,8 +233,8 @@ function fnom(iun,name,opti,reclen) result (status)
   character(len=*), intent(IN)  :: name,opti
   integer(C_INT)                :: status
 
-  character(C_CHAR), dimension(len(trim(name))+1), target :: name1
-  character(C_CHAR), dimension(len(trim(opti))+1), target :: opti1
+!   character(C_CHAR), dimension(len(trim(name))+1), target :: name1
+!   character(C_CHAR), dimension(len(trim(opti))+1), target :: opti1
   logical :: opened
   integer :: stat, last_unit
 
@@ -256,12 +256,13 @@ function fnom(iun,name,opti,reclen) result (status)
     endif
   endif
 
-  name1 = transfer(trim(name)//achar(0),name1)
-  opti1 = transfer(trim(opti)//achar(0),opti1)
+!   name1 = transfer(trim(name)//achar(0),name1)
+!   opti1 = transfer(trim(opti)//achar(0),opti1)
 
   call c_fnom_ext(C_FUNLOC(qqqf7op_c), C_FUNLOC(ftnclos_c))   ! setup callbacks from C
 
-  status = c_fnom(iun, name1, opti1, reclen)                ! get the job done
+!   status = c_fnom(iun, name1, opti1, reclen)                ! get the job done
+  status = c_fnom(iun, trim(name)//achar(0), trim(opti)//achar(0), reclen)                ! get the job done
 end function fnom
 
 ! iun   : file unit
@@ -357,7 +358,7 @@ subroutine waread(iun,buf,adr,nmots)                         ! read from a Word 
   integer(C_INT), intent(IN) :: iun, nmots
   integer(C_INT), intent(IN) :: adr                          ! max = 2GWords, 8GBytes
   integer(C_INT), intent(OUT), dimension(nmots), target :: buf
-print *,'waread, adr, nmots',adr,nmots
+
   call c_waread(iun,C_LOC(buf),adr,nmots)
 end subroutine waread
 
@@ -447,10 +448,11 @@ function existe(name) result(status)
   implicit none
   character(len=*), intent(IN) :: name
   integer(C_INT) :: status
-  character(C_CHAR), dimension(len(trim(name))+1), target :: name1
+!   character(C_CHAR), dimension(len(trim(name))+1), target :: name1
 
-  name1 = transfer(trim(name)//achar(0),name1)
-  status = c_existe(C_LOC(name1(1)))
+!   name1 = transfer(trim(name)//achar(0),name1)
+!   status = c_existe(C_LOC(name1(1)))
+  status = c_existe(trim(name)//achar(0))
   return
 end function existe
 

@@ -281,6 +281,11 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
   char nom2[1024];
   intptr_t intptrt;
 
+  if( sizeof(uint64_t) != sizeof(FGFDT[0].file_size) ){
+    fprintf(stderr,"ERROR: file_size from <fnom.h> too small (uint64_t expected), PLS reconfigure library\n");
+    exit(1);
+  }
+
   if(fnom_initialized == 0) {
     /* Make sure that file descriptor 0 (stdin) will not be returned by open for use with a regular file */
     /* This is a workaround for a particular case on Linux in batch mode with PBS */

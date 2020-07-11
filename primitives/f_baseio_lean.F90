@@ -68,6 +68,7 @@ module fnom_helpers         ! routines for internal use only
     logical :: opened
     integer, dimension(5) :: scrap
 
+    scrap = 0  ! get rid of compiler warning
     inquire (unit=iun, opened=opened, iostat=stat)
     if(opened) then
       status = -1

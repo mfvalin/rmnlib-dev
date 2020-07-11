@@ -28,6 +28,12 @@ program test
   enddo
   write(6,*)'========== basic IO test, c_baseio + f_baseio =========='
   call test_c_fnom()
+  if(c_existe(Cstr('C_file'))  == 0) goto 777
+  if(c_existe(Cstr('C_file2')) == 0) goto 777
+  if(c_unlink(Cstr('C_file'))  /= 0) goto 777
+  if(c_unlink(Cstr('C_file2')) /= 0) goto 777
+  if(c_existe(Cstr('C_file'))  == 1) goto 777
+  if(c_existe(Cstr('C_file2')) == 1) goto 777
 
   write(6,*)'==========testing with Fortran file 99 already open =========='
   iun1 = 99

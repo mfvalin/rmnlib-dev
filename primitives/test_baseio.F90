@@ -17,7 +17,9 @@ program test
     subroutine test_c_fnom() bind(C,name='TEST_c_fnom')
     end subroutine test_c_fnom
   end interface
-
+!
+! using macro Cstr() to transform a Fortran string into a C null terminated string
+!
   s1 = 'string no 1'
   s2 = 'string no 2'
   s3 = 'string no 3'
@@ -41,54 +43,54 @@ program test
   if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
-  if(c_existe('abcdef'//achar(0)) == 0) goto 777
+  if(c_existe(Cstr('abcdef')) == 0) goto 777
 
   status = fnom(iun1,'./ABCDEF.01+','FTN+FMT',0)
   if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
-  if(c_existe('abcdef.01+'//achar(0)) == 0) goto 777
+  if(c_existe(Cstr('abcdef.01+')) == 0) goto 777
 
   status = fnom(iun1,'./ABCDEF_01','FTN+FMT',0)
   if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
-  if(c_existe('abcdef_01'//achar(0)) == 0) goto 777
+  if(c_existe(Cstr('abcdef_01')) == 0) goto 777
 
   status = fnom(iun1,'ABCDEF_02','FTN+FMT',0)
   if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
-  if(c_existe('abcdef_02'//achar(0)) == 0) goto 777
+  if(c_existe(Cstr('abcdef_02')) == 0) goto 777
 
   status = fnom(iun1,'aBCDEF','FTN+FMT',0)
   if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
-  if(c_existe('aBCDEF'//achar(0)) == 0) goto 777
+  if(c_existe(Cstr('aBCDEF')) == 0) goto 777
 
   status = fnom(iun1,'ABCDEf','FTN+FMT',0)
   if(status .ne. 0) goto 777                     ! error
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
-  if(c_existe('ABCDEf'//achar(0)) == 0) goto 777
+  if(c_existe(Cstr('ABCDEf')) == 0) goto 777
 
   write(6,*)'PASSED'
 
   write(6,*)'========== testing file removal  =========='
 
-  if(c_unlink('abcdef'//achar(0)) /= 0) goto 777
-  if(c_existe('abcdef'//achar(0)) == 1) goto 777
-  if(c_unlink('abcdef.01+'//achar(0)) /= 0) goto 777
-  if(c_existe('abcdef.01+'//achar(0)) == 1) goto 777
-  if(c_unlink('abcdef_01'//achar(0)) /= 0) goto 777
-  if(c_existe('abcdef_01'//achar(0)) == 1) goto 777
-  if(c_unlink('abcdef_02'//achar(0)) /= 0) goto 777
-  if(c_existe('abcdef_02'//achar(0)) == 1) goto 777
-  if(c_unlink('aBCDEF'//achar(0)) /= 0) goto 777
-  if(c_existe('aBCDEF'//achar(0)) == 1) goto 777
-  if(c_unlink('ABCDEf'//achar(0)) /= 0) goto 777
-  if(c_existe('ABCDEf'//achar(0)) == 1) goto 777
+  if(c_unlink(Cstr('abcdef'))     /= 0) goto 777
+  if(c_existe(Cstr('abcdef'))     == 1) goto 777
+  if(c_unlink(Cstr('abcdef.01+')) /= 0) goto 777
+  if(c_existe(Cstr('abcdef.01+')) == 1) goto 777
+  if(c_unlink(Cstr('abcdef_01'))  /= 0) goto 777
+  if(c_existe(Cstr('abcdef_01'))  == 1) goto 777
+  if(c_unlink(Cstr('abcdef_02'))  /= 0) goto 777
+  if(c_existe(Cstr('abcdef_02'))  == 1) goto 777
+  if(c_unlink(Cstr('aBCDEF'))     /= 0) goto 777
+  if(c_existe(Cstr('aBCDEF'))     == 1) goto 777
+  if(c_unlink(Cstr('ABCDEf'))     /= 0) goto 777
+  if(c_existe(Cstr('ABCDEf'))     == 1) goto 777
 
   write(6,*)'PASSED'
 
@@ -117,8 +119,8 @@ program test
   read(iun2,*) str2
   if( trim(str2) .ne. 'Line no 2' ) goto 777
   status = fclos(iun2)
-  if(c_unlink('test_namelist'//achar(0)) /= 0) goto 777
-  if(c_existe('test_namelist'//achar(0)) == 1) goto 777
+  if(c_unlink(Cstr('test_namelist')) /= 0) goto 777
+  if(c_existe(Cstr('test_namelist')) == 1) goto 777
   write(6,*)'PASSED'
 
   write(6,*)'========== testing WA functions/subroutines  =========='
@@ -180,8 +182,8 @@ program test
   ladr = (ladr + 511)/512
   if( lsize .ne. ladr ) goto 777
   call waclos(iun)
-  if(c_unlink('/tmp/Sparse'//achar(0)) /= 0) goto 777
-  if(c_existe('/tmp/Sparse'//achar(0)) == 1) goto 777
+  if(c_unlink(Cstr('/tmp/Sparse')) /= 0) goto 777
+  if(c_existe(Cstr('/tmp/Sparse')) == 1) goto 777
   write(6,*)'PASSED'
 
   write(6,*)'========== testing DA functions/subroutines  =========='
@@ -233,8 +235,8 @@ program test
 11 format(A,12I10)
   status = fclos(iund77)
   if(status .ne. 0) goto 777                     ! error
-  if(c_unlink('/tmp/Scrap'//achar(0)) /= 0) goto 777
-  if(c_existe('/tmp/Scrap'//achar(0)) == 1) goto 777
+  if(c_unlink(Cstr('/tmp/Scrap')) /= 0) goto 777
+  if(c_existe(Cstr('/tmp/Scrap')) == 1) goto 777
   write(6,*)'PASSED'
 
   write(6,*)'========== testing Fortran formatted IO  =========='
@@ -258,8 +260,8 @@ program test
   if(trim(str1) .ne. "0123456789" .or. trim(str2) .ne. "abcdefghij") goto 777
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
-  if(c_unlink('/tmp/Scrap1'//achar(0)) /= 0) goto 777
-  if(c_existe('/tmp/Scrap1'//achar(0)) == 1) goto 777
+  if(c_unlink(Cstr('/tmp/Scrap1')) /= 0) goto 777
+  if(c_existe(Cstr('/tmp/Scrap1')) == 1) goto 777
   write(6,*)'PASSED'
 
   write(6,*)'========== testing Fortran unformatted IO  =========='
@@ -282,20 +284,20 @@ program test
   if(trim(str1) .ne. "01234567" .or. trim(str2) .ne. "abcdefgh") goto 777
   status = fclos(iun2)
   if(status .ne. 0) goto 777                     ! error
-  if(c_unlink('/tmp/Scrap2'//achar(0)) /= 0) goto 777
-  if(c_existe('/tmp/Scrap2'//achar(0)) == 1) goto 777
+  if(c_unlink(Cstr('/tmp/Scrap2')) /= 0) goto 777
+  if(c_existe(Cstr('/tmp/Scrap2')) == 1) goto 777
   write(6,*)'PASSED'
   call flush(6)
 
   write(6,*)'========== testing stdout redirection  =========='
   stdoutf = C_FILEPTR( C_STDOUT() )
-  stdout  = c_freopen('./my_stdout'//achar(0), 'w+'//achar(0), stdoutf)
+  stdout  = c_freopen(Cstr('./my_stdout'), Cstr('w+'), stdoutf)
   write(6,*)'this should no appear on screen but in file my_stdout'
   call flush(6)
   call system(" echo 'TEST: listing contents of ./my_stdout' 1>&2")
   call system("cat ./my_stdout 1>&2")
-  if(c_existe('./my_stdout'//achar(0)) == 0) goto 777
-  if(c_unlink('./my_stdout'//achar(0)) /= 0) goto 777
+  if(c_existe(Cstr('./my_stdout')) == 0) goto 777
+  if(c_unlink(Cstr('./my_stdout')) /= 0) goto 777
   goto 888
 777 continue
   write(0,*)'ERROR(S) IN TEST'

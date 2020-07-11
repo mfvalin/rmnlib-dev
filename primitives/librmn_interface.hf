@@ -15,7 +15,9 @@ interface c_f_string
   end subroutine c_f_string2
 end interface
 
+! base IO interfaces (from Fortran f_baseio)
 interface
+! MUST NOT INCLUDE when compiling f_baseio
 #if ! defined(FNOM_OWNER)
   function fnom(iun,name,opti,reclen) result (status)
     import :: C_INT
@@ -70,6 +72,7 @@ interface
     character(C_CHAR), dimension(len(trim(name))+1), target :: name1
   end function existe
 #endif
+! base IO interfaces (from C c_baseio)
   function c_fnom(iun,name,opti,reclen) result (status) bind(C,name='c_fnom')
     import
     integer(C_INT), intent(INOUT) :: iun

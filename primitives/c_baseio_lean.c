@@ -274,6 +274,9 @@ void c_fnom_externals(int (*f90open)(), int (*f90clos)()){
   f90_clos = f90clos;
 }
 
+#if ! defined (FNOM_FILE_SIZE_64_)
+  file size in FGFDT has the wrong type (too small)
+#endif
 int c_fnom(int *iun,char *nom,char *type,int lrec)
 {
   int liun,ier = 0, minus = 0, majus = 0, lng, i, j, pid, lngt, junk, mode;

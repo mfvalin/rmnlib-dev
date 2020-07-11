@@ -22,6 +22,7 @@ typedef struct {
 } general_file_info ;
 
 #if defined(FNOM_OWNER)
+#define FNOM_FILE_SIZE_64_
 general_file_info Fnom_General_File_Desc_Table[MAXFILES];
 #else
 extern general_file_info Fnom_General_File_Desc_Table[MAXFILES];

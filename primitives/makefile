@@ -9,7 +9,7 @@ F_ENDIAN =  -byteswapio
 CC = clang
 CFLAGS =  -O2 -I. -DNO_RPN_MACROS -Wall -DWITH_TEST
 FC = flang
-FCFLAGS =  -O2 -I. -I.. -Wall $(F_ENDIAN)
+FCFLAGS =  -O2 -I. -Wall $(F_ENDIAN)
 
 all: librmn_c.a librmn_f.a test_baseio_lean.Abs
 

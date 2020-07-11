@@ -45,7 +45,7 @@
 
 #define FNOM_OWNER
 #include "../INTRALIB_INCLUDES/fnom.h"
-#include "wafile64.h"
+#include "./wafile64.h"
 
 #if defined(__linux__) || defined(__AIX__)
 #define tell64(fd) lseek64(fd,0,1)

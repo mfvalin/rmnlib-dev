@@ -28,7 +28,6 @@ test_baseio_lean.Abs: test_baseio.F90 librmn_c.a librmn_f.a
 test1_lean: test_baseio_lean.Abs
 	rm -f C_file C_file2 /tmp/Scrap*
 	./test_baseio_lean.Abs
-	rm -f C_file C_file2 /tmp/Scrap*
 
 test1: test_baseio.Abs
 	rm -f C_file C_file2 /tmp/Scrap*

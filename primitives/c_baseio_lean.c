@@ -1,5 +1,5 @@
 /* RMNLIB - Library of useful routines for C and Fortran programming
- * Copyright (C) 1975-2015  Division de Recherche en Prevision Numerique
+ * Copyright (C) 1975-2020  Division de Recherche en Prevision Numerique
  *                          Environnement Canada
  *
  * This library is free software; you can redistribute it and/or
@@ -11,11 +11,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
  */
 
 /*CoMpIlAtIoN_OpTiOnS ::SX4=-Onooverlap::SX5=-Onooverlap::*/
@@ -91,6 +86,13 @@ static char *armnlibpath=NULL;
 static int (*f90_open)() = NULL;
 static int (*f90_clos)() = NULL;
 
+/****************************************************************************
+*            C _ S T D I N, C _ S T D O U T, C _ S T D E R R                *
+*****************************************************************************
+*/
+FILE *C_STDIN()  { return stdin  ; }  // for eventuel use with freopen
+FILE *C_STDOUT() { return stdout ; }
+FILE *C_STDERR() { return stderr ; }
 /****************************************************************************
 *                   C _ F R E T O U R ,   F R E T O U R                     *
 *****************************************************************************

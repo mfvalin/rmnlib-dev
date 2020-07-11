@@ -3,6 +3,8 @@ program test
   implicit none
 #include <iso_c_binding_extras.hf>
 #include <librmn_interface.hf>
+  type(C_PTR)     :: stdout
+  type(C_FILEPTR) :: stdoutf
   integer, external :: wawrit64, waread64
   integer :: iun, status, i, r64, w64, iund77, iun1, iun2
   integer*8 :: ladr, lsize
@@ -22,18 +24,18 @@ program test
   do i=1,size(array0)
     array0(i) = i
   enddo
-  print *,'========== basic IO test, c_baseio + f_baseio =========='
+  write(6,*)'========== basic IO test, c_baseio + f_baseio =========='
   call test_c_fnom()
 
-  print *,'==========testing with Fortran file 99 already open =========='
+  write(6,*)'==========testing with Fortran file 99 already open =========='
   iun1 = 99
   open(unit=99,STATUS='SCRATCH',err=777)
-  print *,'       an error is expected'
+  write(6,*)'       an error is expected'
   status = fnom(iun1,'already_open','FTN+FMT',0)
   if(status .ne. -1) goto 777
-  print *,'PASSED'
+  write(6,*)'PASSED'
 
-  print *,'========== case conversion if no lower case character =========='
+  write(6,*)'========== case conversion if no lower case character =========='
   iun1 = 21
   status = fnom(iun1,'ABCDEF','FTN+FMT',0)
   if(status .ne. 0) goto 777                     ! error
@@ -71,9 +73,9 @@ program test
   if(status .ne. 0) goto 777                     ! error
   if(c_existe('ABCDEf'//achar(0)) == 0) goto 777
 
-  print *,'PASSED'
+  write(6,*)'PASSED'
 
-  print *,'========== testing file removal  =========='
+  write(6,*)'========== testing file removal  =========='
 
   if(c_unlink('abcdef'//achar(0)) /= 0) goto 777
   if(c_existe('abcdef'//achar(0)) == 1) goto 777
@@ -88,9 +90,9 @@ program test
   if(c_unlink('ABCDEf'//achar(0)) /= 0) goto 777
   if(c_existe('ABCDEf'//achar(0)) == 1) goto 777
 
-  print *,'PASSED'
+  write(6,*)'PASSED'
 
-  print *,'========== testing formatted I/O + namelist  =========='
+  write(6,*)'========== testing formatted I/O + namelist  =========='
   iun1 = 0
   status = fnom(iun1,'test_namelist','FTN+FMT',0)
   if(iun1 .ne. 98 .or. status .ne. 0) goto 777
@@ -117,9 +119,9 @@ program test
   status = fclos(iun2)
   if(c_unlink('test_namelist'//achar(0)) /= 0) goto 777
   if(c_existe('test_namelist'//achar(0)) == 1) goto 777
-  print *,'PASSED'
+  write(6,*)'PASSED'
 
-  print *,'========== testing WA functions/subroutines  =========='
+  write(6,*)'========== testing WA functions/subroutines  =========='
   iun = 0
   status = fnom(iun,'/tmp/Scrap','RND+WA',0)
   if(status .ne. 0) goto 777                     ! error
@@ -128,13 +130,13 @@ program test
   call wawrit(iun,array1,1,size(array0))
   call waread(iun,array2,1,size(array0))
   if(any(array1 .ne. array2)) then
-    print *,'failed to read back what was written (1)'
+    write(6,*)'failed to read back what was written (1)'
     goto 777                                     ! error
   endif
 
   array1 = array0 + 512
   ladr = 513
-  print *,'       an error is expected'
+  write(6,*)'       an error is expected'
   w64 = wawrit64(iun,array1,ladr,size(array0),1)
   if(w64 .ne. -1) goto 777
 
@@ -142,22 +144,22 @@ program test
   if(w64 .ne. size(array0)) goto 777
 
   ladr = 129
-  print *,'       an error is expected'
+  write(6,*)'       an error is expected'
   r64 = waread64(iun,array2,ladr,size(array0),1)
   if(r64 .ne. -1) goto 777
 
   r64 = waread64(iun,array2,ladr,size(array0),0)
   if(r64 .ne. size(array0)) goto 777
   if(any(array0+128 .ne. array2)) then
-    print *,'failed to read back what was written (2)'
+    write(6,*)'failed to read back what was written (2)'
     goto 777
   endif
   if(r64 .ne. size(array0)) goto 777
   call waclos(iun)
 ! TODO: add error test writing too far beyond file end, when not in sparse mode
-  print *,'PASSED'
+  write(6,*)'PASSED'
 
-  print *,'========== testing WA64 in sparse mode  =========='
+  write(6,*)'========== testing WA64 in sparse mode  =========='
   iun = 0
   status = fnom(iun,'/tmp/Sparse','RND+WA+SPARSE',0)
   if(status .ne. 0) goto 777                     ! error
@@ -168,7 +170,7 @@ program test
   w64 = wawrit64(iun,array1,ladr,size(array0),0)
   r64 = waread64(iun,array2,ladr,size(array0),0)
   if(any(array1 .ne. array2)) then
-    print *,'failed to read back what was written (1)'
+    write(6,*)'failed to read back what was written (1)'
     goto 777                                     ! error
   endif
   call waclos(iun)
@@ -180,9 +182,9 @@ program test
   call waclos(iun)
   if(c_unlink('/tmp/Sparse'//achar(0)) /= 0) goto 777
   if(c_existe('/tmp/Sparse'//achar(0)) == 1) goto 777
-  print *,'PASSED'
+  write(6,*)'PASSED'
 
-  print *,'========== testing DA functions/subroutines  =========='
+  write(6,*)'========== testing DA functions/subroutines  =========='
   iun = 0
   status = fnom(iun,'/tmp/Scrap','RND+WA',0)     ! use file written for the WA test
   if(status .ne. 0) goto 777                     ! error
@@ -194,7 +196,7 @@ program test
   call readda(iun,array2,2,3)
   call checda(iun)
   if(any(array0+1024 .ne. array2)) then
-    print *,'did not read back what was written'
+    write(6,*)'did not read back what was written'
     goto 777
   endif
   call closda(iun)
@@ -204,28 +206,28 @@ program test
   r64 = waread64(iun,array2,ladr,size(array0),0)
   if(r64 .ne. size(array0)) goto 777
   if(any(array0+1384 .ne. array2)) then
-    print *,'did not read back what was written'
+    write(6,*)'did not read back what was written'
     goto 777
   endif
   call waclos(iun)
   status = fclos(iun)
   if(status .ne. 0) goto 777                     ! error
-  print *,'PASSED'
+  write(6,*)'PASSED'
 
-  print *,'========== testing D77 functionality  =========='
+  write(6,*)'========== testing D77 functionality  =========='
   iund77 = 0
   status = fnom(iund77,'/tmp/Scrap','D77+UNF',10)
   if(status .ne. 0) goto 777                     ! error
   darray = -1
   read(iund77,rec=2)darray(2:11)
   if(darray(2) == ishft(11,24)) then
-    print 12,'ENDIAN ORDER ERROR reading D77, expecting 11, got',darray(2)
+    write(6, 12)'ENDIAN ORDER ERROR reading D77, expecting 11, got',darray(2)
 12 format(A,Z10.8)
     goto 777
   endif
   if( any(darray(1:12) .ne. [-1,11,12,13,14,15,16,17,18,19,20,-1]) ) then
-    print *,'expecting -1, 11 to 20, -1, BIG ENDIAN order'
-    print 11,'got: ',darray(1:12)
+    write(6,*)'expecting -1, 11 to 20, -1, BIG ENDIAN order'
+    write(6, 11)'got: ',darray(1:12)
     goto 777
   endif
 11 format(A,12I10)
@@ -233,10 +235,10 @@ program test
   if(status .ne. 0) goto 777                     ! error
   if(c_unlink('/tmp/Scrap'//achar(0)) /= 0) goto 777
   if(c_existe('/tmp/Scrap'//achar(0)) == 1) goto 777
-  print *,'PASSED'
+  write(6,*)'PASSED'
 
-  print *,'========== testing Fortran formatted IO  =========='
-!   print *,'==========   writing    =========='
+  write(6,*)'========== testing Fortran formatted IO  =========='
+!   write(6,*)'==========   writing    =========='
   iun1 = 0
   status = fnom(iun1,'/tmp/Scrap1','FTN+FMT',0)
   if(status .ne. 0) goto 777                     ! error
@@ -245,7 +247,7 @@ program test
 100 format(A10)
   status = fclos(iun1)
   if(status .ne. 0) goto 777                     ! error
-!   print *,'========== reading back =========='
+!   write(6,*)'========== reading back =========='
   iun1 = 0
   status = fnom(iun1,'/tmp/Scrap1','FTN+FMT+OLD',0)
   if(status .ne. 0) goto 777                     ! error
@@ -258,10 +260,10 @@ program test
   if(status .ne. 0) goto 777                     ! error
   if(c_unlink('/tmp/Scrap1'//achar(0)) /= 0) goto 777
   if(c_existe('/tmp/Scrap1'//achar(0)) == 1) goto 777
-  print *,'PASSED'
+  write(6,*)'PASSED'
 
-  print *,'========== testing Fortran unformatted IO  =========='
-!   print *,'==========   writing    =========='
+  write(6,*)'========== testing Fortran unformatted IO  =========='
+!   write(6,*)'==========   writing    =========='
   iun2 = 0
   status = fnom(iun2,'/tmp/Scrap2','FTN+UNF',0)
   if(status .ne. 0) goto 777                     ! error
@@ -269,7 +271,7 @@ program test
   write(iun2)"abcdefgh"
   status = fclos(iun2)
   if(status .ne. 0) goto 777                     ! error
-!   print *,'========== reading back =========='
+!   write(6,*)'========== reading back =========='
   iun2 = 0
   status = fnom(iun2,'/tmp/Scrap2','FTN+UNF+OLD',0)
   if(status .ne. 0) goto 777                     ! error
@@ -282,10 +284,23 @@ program test
   if(status .ne. 0) goto 777                     ! error
   if(c_unlink('/tmp/Scrap2'//achar(0)) /= 0) goto 777
   if(c_existe('/tmp/Scrap2'//achar(0)) == 1) goto 777
-  print *,'PASSED'
+  write(6,*)'PASSED'
+  call flush(6)
 
+  write(6,*)'========== testing stdout redirection  =========='
+  stdoutf = C_FILEPTR( C_STDOUT() )
+  stdout  = c_freopen('./my_stdout'//achar(0), 'w+'//achar(0), stdoutf)
+  write(6,*)'this should no appear on screen but in file my_stdout'
+  call flush(6)
+  call system(" echo 'TEST: listing contents of ./my_stdout' 1>&2")
+  call system("cat ./my_stdout 1>&2")
+  if(c_existe('./my_stdout'//achar(0)) == 0) goto 777
+  if(c_unlink('./my_stdout'//achar(0)) /= 0) goto 777
   goto 888
 777 continue
-  print *,'ERROR IN TEST'
+  write(0,*)'ERROR(S) IN TEST'
+  call c_exit(13)
 888 continue
+  write(0,*)'SUCCESSFUL END OF TEST'
+  call c_exit(0)
 end program

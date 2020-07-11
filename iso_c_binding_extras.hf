@@ -226,6 +226,26 @@ interface
 !     type(C_FILEPTR) :: file
     type(C_PTR) :: file    ! some compilers have problems returning type(C_FILEPTR)
   end function c_fopen
+  function c_freopen(path, mode, filein) result(file) bind(C,name='freopen')  ! open file  (STREAM)
+    import :: C_PTR, C_CHAR, C_FILEPTR
+    character(C_CHAR), dimension(*), intent(IN) :: path
+    character(C_CHAR), dimension(*), intent(IN) :: mode
+    type(C_FILEPTR), intent(IN), value :: filein
+!     type(C_FILEPTR) :: file
+    type(C_PTR) :: file    ! some compilers have problems returning type(C_FILEPTR)
+  end function c_freopen
+  function c_stdin() result(file) bind(C,name='C_STDIN')   ! get stdin file pointer
+    import :: C_PTR
+    type(C_PTR) :: file    ! some compilers have problems returning type(C_FILEPTR)
+  end function c_stdin
+  function c_stdout() result(file) bind(C,name='C_STDOUT')   ! get stdout file pointer
+    import :: C_PTR
+    type(C_PTR) :: file    ! some compilers have problems returning type(C_FILEPTR)
+  end function c_stdout
+  function c_stderr() result(file) bind(C,name='C_STDERR')   ! get stderr file pointer
+    import :: C_PTR
+    type(C_PTR) :: file    ! some compilers have problems returning type(C_FILEPTR)
+  end function c_stderr
 
   function c_read(fd, buf, cnt) result(nb) bind(C,name='read') ! read (file descriptor)
     import :: C_INT, C_PTR, C_SIZE_T, C_SSIZE_T
@@ -337,5 +357,10 @@ interface
     import :: C_PTR
     type(C_PTR), intent(IN), value :: what
   end subroutine c_free
+
+  subroutine c_exit(code) bind(C,name='exit')
+    import :: C_INT
+    integer(C_INT), intent(IN), value :: code
+  end subroutine c_exit
 
 end interface

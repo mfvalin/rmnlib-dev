@@ -8,9 +8,21 @@
 #include <fcntl.h>
 #include <limits.h>
 
-#define SIZEOF(a) (sizeof(a) == 4) ? "C_INT" : "C_LONG_LONG" 
+  
+#define SIZEOF(a) s_sizeof[sizeof(a)]
 
 int main(){
+  char *s_sizeof[9] = {
+    "INVALID",
+    "C_INT8_T",
+    "C_INT16_T",
+    "INVALID",
+    "C_INT32_T",
+    "INVALID",
+    "INVALID",
+    "INVALID",
+    "C_INT64_T" };
+
   printf("integer, parameter :: C_SSIZE_T = %s\n",SIZEOF(ssize_t));
   printf("integer, parameter :: C_TIME_T = %s\n",SIZEOF(time_t));
   printf("integer, parameter :: C_SUSECONDS_T = %s\n",SIZEOF(suseconds_t));

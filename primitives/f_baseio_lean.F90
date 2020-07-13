@@ -46,7 +46,7 @@ module fnom_helpers         ! routines for internal use only
     implicit none
     integer(C_INT), intent(IN) :: iun
     integer(C_INT) :: status
-
+write(0,*)'Fortran close unit =',iun
     close(unit = iun)
     status = 0
     return
@@ -75,16 +75,17 @@ module fnom_helpers         ! routines for internal use only
       print *,'ERROR: Fortran unit',iun,' is already open'
       return
     endif
+
     if(d77mult == 0) then   ! find value of dmult (1 or 4) (compiler dependent)
       i = 100
       opened = .true.
-      do while(opened .and. iun > 1)
+      do while(opened .and. i > 1)
         i = i - 1
         inquire (unit=i, opened=opened, iostat=stat)
       enddo
       open(unit=i,ACCESS='DIRECT',FORM='UNFORMATTED',STATUS='SCRATCH',RECL=5)
       d77mult = 4                     ! this value if write generates an error
-      write(iun,rec=1,err=1) scrap    ! there will be an error if d77mult needs to be 4 (recl in bytes)
+      write(i,rec=1,err=1) scrap    ! there will be an error if d77mult needs to be 4 (recl in bytes)
       d77mult = 1                     ! no error, recl had room for 16 bytes, recl is in words
   1   close(unit=i)
   !     print *,'DEBUG: d77mult =',d77mult

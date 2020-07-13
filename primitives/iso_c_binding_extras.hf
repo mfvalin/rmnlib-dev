@@ -19,14 +19,14 @@
 ! the following block is normally produced by running c_binding_extras.c
 ! in case file c_binding_extras.hf is not present, use these values
 #if defined(NO_C_BINDING_EXTRAS)
-integer, parameter :: C_SSIZE_T = C_LONG_LONG
-integer, parameter :: C_TIME_T = C_LONG_LONG
-integer, parameter :: C_SUSECONDS_T = C_LONG_LONG
-integer, parameter :: C_USECONDS_T = C_INT
-integer, parameter :: C_CLOCK_T = C_LONG_LONG
+integer, parameter :: C_SSIZE_T = C_INT64_T
+integer, parameter :: C_TIME_T = C_INT64_T
+integer, parameter :: C_SUSECONDS_T = C_INT64_T
+integer, parameter :: C_USECONDS_T = C_INT32_T
+integer, parameter :: C_CLOCK_T = C_INT64_T
 real,    parameter :: C_CLOCKS_PER_SEC = 1000000.0
-integer, parameter :: C_MODE_T = C_INT
-integer, parameter :: C_OFF_T  = C_LONG_LONG
+integer, parameter :: C_MODE_T = C_INT32_T
+integer, parameter :: C_OFF_T  = C_INT64_T
 integer, parameter :: O_APPEND = 1024
 integer, parameter :: O_CREAT  = 64
 integer, parameter :: O_EXCL   = 128

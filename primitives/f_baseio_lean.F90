@@ -46,7 +46,7 @@ module fnom_helpers         ! routines for internal use only
     implicit none
     integer(C_INT), intent(IN) :: iun
     integer(C_INT) :: status
-write(0,*)'Fortran close unit =',iun
+
     close(unit = iun)
     status = 0
     return

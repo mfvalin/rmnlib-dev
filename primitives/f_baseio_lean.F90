@@ -68,7 +68,8 @@ module fnom_helpers         ! routines for internal use only
     logical :: opened
     integer, dimension(5) :: scrap
 
-    scrap = 0  ! get rid of compiler warning
+    scrap = 0        ! get rid of compiler warning
+    opened = .true.  ! get rid of compiler warning
     inquire (unit=iun, opened=opened, iostat=stat)
     if(opened) then
       status = -1
@@ -85,7 +86,7 @@ module fnom_helpers         ! routines for internal use only
       enddo
       open(unit=i,ACCESS='DIRECT',FORM='UNFORMATTED',STATUS='SCRATCH',RECL=5)
       d77mult = 4                     ! this value if write generates an error
-      write(i,rec=1,err=1) scrap    ! there will be an error if d77mult needs to be 4 (recl in bytes)
+      write(i,rec=1,err=1) scrap      ! there will be an error if d77mult needs to be 4 (recl in bytes)
       d77mult = 1                     ! no error, recl had room for 16 bytes, recl is in words
   1   close(unit=i)
   !     print *,'DEBUG: d77mult =',d77mult
@@ -222,7 +223,6 @@ end module fnom_helpers
 ! reclen     : record length in 4 byte units for Fortran D77 file records (should be zero otherwise, mostly ignored)
 !
 function fnom(iun,name,opti,reclen) result (status)
-  use ISO_C_BINDING
   use fnom_helpers
   implicit none
   integer(C_INT), intent(INOUT) :: iun
@@ -267,7 +267,6 @@ end function fnom
 ! ftyp  : file options string
 ! flrec : record length, as specified in call to fnom/c_fnom
 function qqqfnom(iun,name,ftyp,flrec) result(status)  ! get filename, properties, record length  info from unit number
-  use ISO_C_BINDING
   use fnom_helpers
   implicit none
   integer(C_INT), intent(IN)    :: iun

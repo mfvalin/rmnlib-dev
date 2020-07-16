@@ -7,8 +7,9 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
-  
 #define SIZEOF(a) s_sizeof[sizeof(a)]
 
 int main(){
@@ -28,6 +29,7 @@ int main(){
   printf("integer, parameter :: C_SUSECONDS_T = %s\n",SIZEOF(suseconds_t));
   printf("integer, parameter :: C_USECONDS_T = %s\n",SIZEOF(useconds_t));
   printf("integer, parameter :: C_CLOCK_T = %s\n",SIZEOF(clock_t));
+  printf("integer, parameter :: C_KEY_T = %s\n",SIZEOF(key_t));
   printf("real,    parameter :: C_CLOCKS_PER_SEC = %ld.0\n",CLOCKS_PER_SEC);
   printf("integer, parameter :: C_MODE_T = %s\n",SIZEOF(mode_t));
   printf("integer, parameter :: C_OFF_T  = %s\n",SIZEOF(off_t));
@@ -42,5 +44,10 @@ int main(){
   printf("integer, parameter :: SEEK_CUR = %d\n",SEEK_CUR);
   printf("integer, parameter :: SEEK_END = %d\n",SEEK_END);
   printf("integer, parameter :: PATH_MAX = %d\n",PATH_MAX);
+  printf("integer, parameter :: IPC_PRIVATE = %d\n",IPC_PRIVATE);
+  printf("integer, parameter :: IPC_CREAT = %d\n",IPC_CREAT);
+  printf("integer, parameter :: IPC_EXCL = %d\n",IPC_EXCL);
+  printf("integer, parameter :: IPC_RMID = %d\n",IPC_RMID);
+  printf("integer, parameter :: SIZEOF_SHMID_DS = %ld\n",sizeof(struct shmid_ds));
   return 0;
 }

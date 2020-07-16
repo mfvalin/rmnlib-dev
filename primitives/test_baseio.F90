@@ -309,6 +309,40 @@ program test
   write(0,*)'ERROR(S) IN TEST'
   call c_exit(13)
 888 continue
+  call test_shm
   write(0,*)'SUCCESSFUL END OF TEST'
   call c_exit(0)
 end program
+
+subroutine test_shm
+  use ISO_C_BINDING
+  implicit none
+#include <iso_c_binding_extras.hf>
+#include <librmn_interface.hf>
+
+  type(shmid_ds) :: shmidds
+  integer(C_INT) :: shmemid, flags, ok, dummy
+  integer(C_SIZE_T) :: shmemsiz
+  type(C_PTR)    :: memadr
+  integer(C_INTPTR_T) :: memint
+  integer(C_INT8_T), dimension(:), pointer :: array
+
+  write(0,*)'========== testing shared memory interface  =========='
+  shmemsiz= 1024*1024*1024   ! 1GBytes
+  shmemid = c_shmget(IPC_PRIVATE, shmemsiz, IPC_CREAT+S_IRUSR+S_IWUSR)
+  write(0,*) 'shared memory segment id =',shmemid
+  memadr  = c_shmat(shmemid, C_NULL_PTR, 0)
+  call C_F_POINTER(memadr, array, [shmemsiz])
+  memint  = transfer(memadr, memint)
+  write(0,'(A,Z16.16)') 'attached at ',memint
+  ok      = c_shmctl(shmemid, IPC_RMID, shmidds)
+  write(0,*) 'status(c_shmctl) =',ok
+  write(0,*) 'before initializing array'
+  read(5,*) dummy
+  array = 1
+  write(0,*) 'after initializing array'
+  read(5,*) dummy
+  ok      = c_shmdt(memadr)
+  write(0,*) 'status(c_shmdt) =',ok
+  write(0,*)'PASSED'
+end subroutine test_shm

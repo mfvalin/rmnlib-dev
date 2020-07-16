@@ -24,6 +24,7 @@ integer, parameter :: C_TIME_T = C_INT64_T
 integer, parameter :: C_SUSECONDS_T = C_INT64_T
 integer, parameter :: C_USECONDS_T = C_INT32_T
 integer, parameter :: C_CLOCK_T = C_INT64_T
+integer, parameter :: C_KEY_T = C_INT32_T
 real,    parameter :: C_CLOCKS_PER_SEC = 1000000.0
 integer, parameter :: C_MODE_T = C_INT32_T
 integer, parameter :: C_OFF_T  = C_INT64_T
@@ -38,6 +39,11 @@ integer, parameter :: SEEK_SET = 0
 integer, parameter :: SEEK_CUR = 1
 integer, parameter :: SEEK_END = 2
 integer, parameter :: PATH_MAX = 4096
+integer, parameter :: IPC_PRIVATE = 0
+integer, parameter :: IPC_CREAT = 512
+integer, parameter :: IPC_EXCL = 1024
+integer, parameter :: IPC_RMID = 0
+integer, parameter :: SIZEOF_SHMID_DS = 112
 #else
 #include <c_binding_extras.hf>
 #endif
@@ -91,6 +97,10 @@ end type
 type, bind(C) :: timezone
   integer(C_INT) :: tz_minuteswest
   integer(C_INT) :: tz_dsttime
+end type
+
+type, bind(C) :: shmid_ds
+  integer(C_INT), dimension(SIZEOF_SHMID_DS/4) :: x
 end type
 
 ! interfaces tp popular libc functions
@@ -353,7 +363,7 @@ interface
     integer(C_SIZE_T) :: length
   end function c_strlen
 
-  function c_malloc(sz) result(p) BIND(C,name='malloc')
+  function c_malloc(sz) result(p) bind(C,name='malloc')
     import :: C_PTR, C_SIZE_T
     integer(C_SIZE_T), intent(IN), value :: sz
     type(C_PTR) :: p
@@ -368,5 +378,32 @@ interface
     import :: C_INT
     integer(C_INT), intent(IN), value :: code
   end subroutine c_exit
+
+  function c_shmget(key, siz, flags) result(memid) bind(C,name='shmget')
+    import :: C_INT, C_KEY_T, C_SIZE_T
+    integer(C_KEY_T), intent(IN),  value :: key
+    integer(C_SIZE_T), intent(IN), value :: siz
+    integer(C_INT), intent(IN),    value :: flags
+    integer(C_INT) :: memid
+  end function c_shmget
+  function c_shmat(memid, shmaddr, flags) result(addr) bind(C,name='shmat')
+    import :: C_INT, C_PTR
+    integer(C_INT), intent(IN),    value :: memid
+    type(C_PTR), intent(IN),       value :: shmaddr
+    integer(C_INT), intent(IN),    value :: flags
+    type(C_PTR) :: addr
+  end function c_shmat
+  function c_shmdt(shmaddr) result(ok) bind(C,name='shmdt')
+    import :: C_INT, C_PTR
+    type(C_PTR), intent(IN),       value :: shmaddr
+    integer(C_INT) :: ok
+  end function c_shmdt
+  function c_shmctl(memid, cmd, buf) result(ok) bind(C,name='shmctl')
+    import :: C_INT, shmid_ds
+    integer(C_INT), intent(IN),    value :: memid
+    integer(C_INT), intent(IN),    value :: cmd
+    type(shmid_ds), intent(OUT)          :: buf
+    integer(C_INT) :: ok
+  end function c_shmctl
 
 end interface

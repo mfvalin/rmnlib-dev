@@ -17,6 +17,24 @@ program test
     subroutine test_c_fnom() bind(C,name='TEST_c_fnom')
     end subroutine test_c_fnom
   end interface
+  external :: message_at_exit
+  type(C_PTR) :: dlhandle
+  type(C_FUNPTR)       :: demo1,  demo2
+
+  interface
+    integer function proc1(a)
+      integer, intent(IN), value :: a
+    end function proc1
+    real function proc2(a, b)
+      integer, intent(IN), value :: a
+      real, intent(IN), value :: b
+    end function proc2
+  end interface
+  procedure(proc1), pointer :: fdemo1
+  procedure(proc2), pointer :: fdemo2
+  integer :: f1
+  real :: f2
+  integer, external :: test_shm
 !
 ! using macro Cstr() to transform a Fortran string into a C null terminated string
 !
@@ -295,10 +313,39 @@ program test
   write(6,*)'PASSED'
   call flush(6)
 
+  write(6,*)'========== testing interface to shared library  =========='
+  dlhandle = c_dlopen(Cstr('./libdemo.so'), RTLD_LAZY)
+  if(C_ASSOCIATED(dlhandle)) then
+    demo1 = c_dlsym(dlhandle, Cstr('Demo1'))
+    if(C_ASSOCIATED(demo1)) then
+      call C_F_PROCPOINTER(demo1,fdemo1)
+      f1 = fdemo1(1234)
+      if(f1 .ne. 1234) goto 777
+    else
+      write(6,*)'entry Demo1 not found'
+      goto 777
+    endif
+    demo2 = c_dlsym(dlhandle, Cstr('Demo2'))
+    if(C_ASSOCIATED(demo2)) then
+      call C_F_PROCPOINTER(demo2,fdemo2)
+      f2 = fdemo2(5678, 12.23)
+      if(f2 .ne. 12.23+5678) goto 777
+    else
+      write(6,*)'entry Demo2 not found'
+      goto 777
+    endif
+    status = c_dlclose(dlhandle)
+    if(status .ne. 0) goto 777
+    write(6,*)'PASSED'
+  else
+    write(6,*)'libdemo.so not found'
+    write(6,*)'SKIPPED'
+  endif
+
   write(6,*)'========== testing stdout redirection  =========='
   stdoutf = C_FILEPTR( C_STDOUT() )
   stdout  = c_freopen(Cstr('./my_stdout'), Cstr('w+'), stdoutf)
-  write(6,*)'this should no appear on screen but in file my_stdout'
+  write(6,*)'this should not appear on screen but in file my_stdout'
   call flush(6)
   call system(" echo 'TEST: listing contents of ./my_stdout' 1>&2")
   call system("cat ./my_stdout 1>&2")
@@ -309,19 +356,26 @@ program test
   write(0,*)'ERROR(S) IN TEST'
   call c_exit(13)
 888 continue
-  call test_shm
-  write(0,*)'SUCCESSFUL END OF TEST'
+  if( test_shm() .ne. 0) goto 777
+  write(0,*)'PASSED'
+
+  write(0,*)'========== testing atexit functionality  =========='
+  status = c_atexit(C_FUNLOC(message_at_exit))
   call c_exit(0)
 end program
 
-subroutine test_shm
+subroutine message_at_exit()
+  write(0,*)'SUCCESSFUL END OF TEST (atexit)'
+end subroutine message_at_exit
+
+integer function test_shm()
   use ISO_C_BINDING
   implicit none
 #include <iso_c_binding_extras.hf>
 #include <librmn_interface.hf>
 
   type(shmid_ds) :: shmidds
-  integer(C_INT) :: shmemid, flags, ok, dummy
+  integer(C_INT) :: shmemid, dummy
   integer(C_SIZE_T) :: shmemsiz
   type(C_PTR)    :: memadr
   integer(C_INTPTR_T) :: memint
@@ -334,15 +388,14 @@ subroutine test_shm
   memadr  = c_shmat(shmemid, C_NULL_PTR, 0)
   call C_F_POINTER(memadr, array, [shmemsiz])
   memint  = transfer(memadr, memint)
-  write(0,'(A,Z16.16)') 'attached at ',memint
-  ok      = c_shmctl(shmemid, IPC_RMID, shmidds)
-  write(0,*) 'status(c_shmctl) =',ok
-  write(0,*) 'before initializing array'
+  write(0,'(A,Z16.16)') ' attached at ',memint
+  test_shm = c_shmctl(shmemid, IPC_RMID, shmidds)
+  if(test_shm .ne. 0) return
+  write(0,*) 'before initializing array, PLS input an integer value'
   read(5,*) dummy
   array = 1
-  write(0,*) 'after initializing array'
+  write(0,*) 'after initializing array, PLS input an integer value'
   read(5,*) dummy
-  ok      = c_shmdt(memadr)
-  write(0,*) 'status(c_shmdt) =',ok
-  write(0,*)'PASSED'
-end subroutine test_shm
+  test_shm = c_shmdt(memadr)
+  return
+end function test_shm

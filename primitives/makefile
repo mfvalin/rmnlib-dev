@@ -25,11 +25,13 @@ test_baseio.Abs: librmn_c.a librmn_f.a test_baseio.F90
 	$(FC) $(FCFLAGS) test_baseio.F90 -L. -lrmn_f -lrmn_c -o test_baseio.Abs -DNOT_LEAN
 
 test_baseio_lean.Abs: test_baseio.F90 librmn_c.a librmn_f.a
-	$(FC) $(FCFLAGS) test_baseio.F90 -L. -lrmn_f -lrmn_c -o test_baseio_lean.Abs
+	$(FC) $(FCFLAGS) test_baseio.F90 -L. -lrmn_f -lrmn_c -o test_baseio_lean.Abs -lnuma -ldl
 
 test1_lean: test_baseio_lean.Abs
 	rm -f C_file C_file2 /tmp/Scrap*
+	$(CC) -shared -fpic -o libdemo.so libdemo.c
 	./test_baseio_lean.Abs
+	rm -f libdemo.so
 
 test1: test_baseio.Abs
 	rm -f C_file C_file2 /tmp/Scrap*
@@ -43,5 +45,5 @@ testc:
 	rm -f ./testc.Abs C_file C_file2
 
 clean:
-	rm -f librmn_c.a librmn_f.a *.o *.mod a.out *.Abs a.out test_namelist C_file C_file2
+	rm -f librmn_c.a librmn_f.a *.o *.mod a.out *.Abs a.out test_namelist C_file C_file2 libdemo.so
 

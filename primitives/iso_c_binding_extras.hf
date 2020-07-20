@@ -44,6 +44,10 @@ integer, parameter :: IPC_CREAT = 512
 integer, parameter :: IPC_EXCL = 1024
 integer, parameter :: IPC_RMID = 0
 integer, parameter :: SIZEOF_SHMID_DS = 112
+integer, parameter :: RTLD_LAZY = 1
+integer, parameter :: RTLD_NOW = 2
+integer, parameter :: RTLD_GLOBAL = 256
+integer, parameter :: RTLD_LOCAL = 0
 #else
 #include <c_binding_extras.hf>
 #endif
@@ -368,7 +372,6 @@ interface
     integer(C_SIZE_T), intent(IN), value :: sz
     type(C_PTR) :: p
   end function c_malloc
-
   subroutine c_free(what) bind(C,name='free')
     import :: C_PTR
     type(C_PTR), intent(IN), value :: what
@@ -378,6 +381,11 @@ interface
     import :: C_INT
     integer(C_INT), intent(IN), value :: code
   end subroutine c_exit
+  function c_atexit(proc) result(ok) bind(C,name='atexit')
+    import :: C_INT, C_FUNPTR
+    type(C_FUNPTR), intent(IN), value :: proc
+    integer(C_INT) :: ok
+  end function c_atexit
 
   function c_shmget(key, siz, flags) result(memid) bind(C,name='shmget')
     import :: C_INT, C_KEY_T, C_SIZE_T
@@ -405,5 +413,27 @@ interface
     type(shmid_ds), intent(OUT)          :: buf
     integer(C_INT) :: ok
   end function c_shmctl
+
+  function c_dlopen(path, flags) result(handle) bind(C,name='dlopen')
+    import :: C_INT, C_PTR, C_CHAR
+    integer(C_INT), intent(IN),    value :: flags
+    character(C_CHAR), dimension(*), intent(IN) :: path
+    type(C_PTR) :: handle
+  end function c_dlopen
+  function c_dlsym(handle, name) result(address) bind(C,name='dlsym')
+    import :: C_PTR, C_CHAR, C_FUNPTR
+    type(C_PTR), intent(IN),    value :: handle
+    character(C_CHAR), dimension(*), intent(IN) :: name
+    type(C_FUNPTR) :: address
+  end function c_dlsym
+  function c_dlclose(handle) result(ok) bind(C,name='dlclose')
+    import :: C_INT, C_PTR
+    type(C_PTR), intent(IN),    value :: handle
+    integer(C_INT) :: ok
+  end function c_dlclose
+  function c_dlerror() result(cstring) bind(C,name='dlerror')
+    import :: C_PTR
+    type(C_PTR) :: cstring
+  end function c_dlerror
 
 end interface

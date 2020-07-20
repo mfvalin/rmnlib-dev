@@ -359,9 +359,9 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
   if (liun == 6) {
     fclose(stdout);
     if (minus && majus)
-      freopen(nom,"a",stdout);
+      stdout = freopen(nom,"a",stdout);
     else
-      freopen(nom2,"a",stdout);
+      stdout = freopen(nom2,"a",stdout);
 /*    fprintf(stderr,"C_FNOM DEBUG: freopen %s pour stdout\n",nom2) ; */
     stdoutflag=1;
     return(0);
@@ -369,9 +369,9 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
   else if (liun == -2) {
     fclose(stderr);
     if (minus && majus)
-      freopen(nom,"a",stderr);
+      stderr = freopen(nom,"a",stderr);
     else
-      freopen(nom2,"a",stderr);
+      stderr = freopen(nom2,"a",stderr);
     return(0);
   }
   for (i=0; i<MAXFILES; i++)

@@ -9,6 +9,7 @@
 #include <limits.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <dlfcn.h>
 
 #define SIZEOF(a) s_sizeof[sizeof(a)]
 
@@ -49,5 +50,9 @@ int main(){
   printf("integer, parameter :: IPC_EXCL = %d\n",IPC_EXCL);
   printf("integer, parameter :: IPC_RMID = %d\n",IPC_RMID);
   printf("integer, parameter :: SIZEOF_SHMID_DS = %ld\n",sizeof(struct shmid_ds));
+  printf("integer, parameter :: RTLD_LAZY = %d\n",RTLD_LAZY);
+  printf("integer, parameter :: RTLD_NOW = %d\n",RTLD_NOW);
+  printf("integer, parameter :: RTLD_GLOBAL = %d\n",RTLD_GLOBAL);
+  printf("integer, parameter :: RTLD_LOCAL = %d\n",RTLD_LOCAL);
   return 0;
 }

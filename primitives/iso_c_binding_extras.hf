@@ -52,29 +52,29 @@ integer, parameter :: RTLD_LOCAL = 0
 #include <c_binding_extras.hf>
 #endif
 
-! C_LoC makes a type(C_PTR) object (address of what)
+! C_LoC makes a type(C_PTR) object (address of what) from the address of what
 #if ! defined(C_LoC)
 #define C_LoC(what) transfer(loc(what),C_NULL_PTR)
 #endif
 
-! Cstr transforms a Fortran string into a C NULL terminated string
+! Cstr transforms a Fortran string into a C compatible NULL terminated string
 #if ! defined(Cstr)
 #define Cstr(fstr) (trim(fstr)//ACHAR(0))
 #endif
 
 ! permission bits for files and directories
-  integer, parameter :: S_IRWXU = O'700'
-  integer, parameter :: S_IRUSR = O'400'
-  integer, parameter :: S_IWUSR = O'200'
-  integer, parameter :: S_IXUSR = O'100'
-  integer, parameter :: S_IRWXG = O'070'
-  integer, parameter :: S_IRGRP = O'040'
-  integer, parameter :: S_IWGRP = O'020'
-  integer, parameter :: S_IXGRP = O'010'
-  integer, parameter :: S_IRWXO = O'007'
-  integer, parameter :: S_IROTH = O'004'
-  integer, parameter :: S_IWOTH = O'002'
-  integer, parameter :: S_IXOTH = O'001'  
+  integer, parameter :: S_IRWXU = int(O'700')
+  integer, parameter :: S_IRUSR = int(O'400')
+  integer, parameter :: S_IWUSR = int(O'200')
+  integer, parameter :: S_IXUSR = int(O'100')
+  integer, parameter :: S_IRWXG = int(O'070')
+  integer, parameter :: S_IRGRP = int(O'040')
+  integer, parameter :: S_IWGRP = int(O'020')
+  integer, parameter :: S_IXGRP = int(O'010')
+  integer, parameter :: S_IRWXO = int(O'007')
+  integer, parameter :: S_IROTH = int(O'004')
+  integer, parameter :: S_IWOTH = int(O'002')
+  integer, parameter :: S_IXOTH = int(O'001') 
 ! standard file descriptors
   integer, parameter :: STDIN_FILENO  = 0
   integer, parameter :: STDOUT_FILENO = 1

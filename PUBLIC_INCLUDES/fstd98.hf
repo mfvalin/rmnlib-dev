@@ -69,3 +69,34 @@ interface
   end subroutine fstecr
 
 end interface
+
+interface fstoption
+  function fstopc(option, value, mode) result(val)
+    implicit none
+    character(len=*), intent(IN) :: option
+    character(len=*), intent(IN) :: value
+    integer, intent(IN) :: mode
+    integer :: val
+  end function fstopc
+  function fstopi(option, value, mode) result(val)
+    implicit none
+    character(len=*), intent(IN) :: option
+    integer, intent(IN) :: value
+    integer, intent(IN) :: mode
+    integer :: val
+  end function fstopi
+  function fstopl(option, value, mode) result(val)
+    implicit none
+    character(len=*), intent(IN) :: option
+    logical, intent(IN) :: value
+    integer, intent(IN) :: mode
+    integer :: val
+  end function fstopl
+  function fstopr(option, value, mode) result(val)
+    implicit none
+    character(len=*), intent(IN) :: option
+    real, intent(IN) :: value
+    integer, intent(IN) :: mode
+    integer :: val
+  end function fstopr
+end interface

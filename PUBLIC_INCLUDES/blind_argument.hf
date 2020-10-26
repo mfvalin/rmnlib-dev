@@ -23,7 +23,7 @@
 !DIR$ ATTRIBUTES NO_ARG_CHECK :: VarName
 #elif defined(WITH_PGI) || defined(WITH_NVIDIA) || defined(WITH_CRAY) || defined(_CRAYFTN) || defined(__PGI)
 !DIR$ ignore_tkr VarName
-#elif defined(WITH_IBM)
+#elif defined(WITH_IBM) || defined(__xlC__)
 !ibm* ignore_tkr VarName
 #else
 !

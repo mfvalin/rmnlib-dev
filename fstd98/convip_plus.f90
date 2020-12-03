@@ -61,7 +61,7 @@ SUBROUTINE CONVIP_plus( ip, p, kind, mode, string, flagv )
 !    KIND =4, p est en hauteur (M) par rapport au niveau du sol    (-20,000 -> 100,000)
 !    KIND =5, p est en coordonnee hybride                          (0.0 -> 1.0)
 !    KIND =6, p est en coordonnee theta                            (1 -> 200,000)
-!    KIND =7, p est en metres sous le niveau de la mer(profondeur) (0 -> 20,000)
+!    KIND =7, p est en metres (profondeur sous l'eau)              (0 -> 20,000)
 !    KIND =10, p represente le temps en heure                      (0.0 -> 1.0e10)
 !    KIND =15, reserve (entiers)                                   
 !    KIND =17, p represente l'indice x de la matrice de conversion (1.0 -> 1.0e10)
@@ -596,9 +596,16 @@ subroutine test_convip_plus() ! test routine for convip_plus
   enddo
   print 112,'ip1<>ip2 (normalization aliases)=',nip,' p1 ~= p2 (within 2.0E-7 relative error)',nip2,' errors=',nip3
   do i=5,1005,100
-     ip1 = i
+     ip1 = i       ! old style presure in mb
      call CONVIP_plus( ip1, p, kind, -1, string, .false.)
-     p=p+.751
+     p =p + .751
+     call CONVIP_plus( ip1, p, kind, +2, string, .false. )
+     call CONVIP_plus( ip1, p, kind, -1, string, .true.)
+     print 113,i,p,kind,':'//trim(string)//':'
+  enddo
+  do i=0,20000,2000
+     p = i + .1
+     kind = 7  ! force to type 7
      call CONVIP_plus( ip1, p, kind, +2, string, .false. )
      call CONVIP_plus( ip1, p, kind, -1, string, .true.)
      print 113,i,p,kind,':'//trim(string)//':'

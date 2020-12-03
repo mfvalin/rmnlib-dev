@@ -5,7 +5,7 @@
 !
 ! usage:
 !   #define VarName name1 [, name2] [, name3] ...
-!   #include <blind_argment.hf>
+!   #include <blind_argument.hf>
 !
 ! type(*) is known to be supported by gfortran and Intel Fortran compiler
 !

@@ -436,4 +436,22 @@ interface
     type(C_PTR) :: cstring
   end function c_dlerror
 
+  function c_sched_getaffinity(pid, sz, mask) result(status) bind(C,name='sched_getaffinity')
+    import :: C_INT, C_SIZE_T, C_PTR
+    implicit none
+    integer(C_INT), intent(IN), value    :: pid
+    integer(C_SIZE_T), intent(IN), value :: sz
+    type(C_PTR), intent(IN), value       :: mask
+    integer(C_INT) :: status
+  end function c_sched_getaffinity
+
+  function c_sched_setaffinity(pid, sz, mask) result(status) bind(C,name='sched_setaffinity')
+    import :: C_INT, C_SIZE_T, C_PTR
+    implicit none
+    integer(C_INT), intent(IN), value    :: pid
+    integer(C_SIZE_T), intent(IN), value :: sz
+    type(C_PTR), intent(IN), value       :: mask
+    integer(C_INT) :: status
+  end function c_sched_setaffinity
+
 end interface

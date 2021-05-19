@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
@@ -10,6 +9,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <dlfcn.h>
+#include <sched.h>
 
 #define SIZEOF(a) s_sizeof[sizeof(a)]
 
@@ -54,5 +54,6 @@ int main(){
   printf("integer, parameter :: RTLD_NOW = %d\n",RTLD_NOW);
   printf("integer, parameter :: RTLD_GLOBAL = %d\n",RTLD_GLOBAL);
   printf("integer, parameter :: RTLD_LOCAL = %d\n",RTLD_LOCAL);
+  printf("type :: CPU_SET_T\n  integer(C_INT32_T), dimension(0:%ld) :: set\nend type\n",sizeof(cpu_set_t)/sizeof(int32_t)-1);
   return 0;
 }

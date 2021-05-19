@@ -48,6 +48,9 @@ integer, parameter :: RTLD_LAZY = 1
 integer, parameter :: RTLD_NOW = 2
 integer, parameter :: RTLD_GLOBAL = 256
 integer, parameter :: RTLD_LOCAL = 0
+type :: CPU_SET_T
+  integer(C_INT32_T), dimension(0:31) :: set   ! 128 bytes
+end type
 #else
 #include <c_binding_extras.hf>
 #endif

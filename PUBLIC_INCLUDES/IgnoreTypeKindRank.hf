@@ -10,9 +10,9 @@
 ! type(*) is known to be supported by gfortran and Intel Fortran compiler
 !
 #if defined(__GFORTRAN__) || defined(__INTEL_COMPILER)
-      type(*), dimension(*) :: IgnoreTypeKindRank
+      type(*), dimension(*) ExtraAttributes :: IgnoreTypeKindRank
 #else
-      logical, dimension(*) :: IgnoreTypeKindRank  ! Cray compiler, PGI/Nvidia, flang, xlf, SunStudio
+      logical, dimension(*) ExtraAttributes :: IgnoreTypeKindRank  ! Cray compiler, PGI/Nvidia, flang, xlf, SunStudio
 #endif
 !
 ! ignore type, kind, and rank through the use of compiler directives (pragmas)
@@ -35,3 +35,4 @@
 !IBM* IGNORE_TKR IgnoreTypeKindRank
 #endif
 #undef IgnoreTypeKindRank
+#undef ExtraAttributes

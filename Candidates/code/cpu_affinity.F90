@@ -3,7 +3,7 @@ module c_sched_affinity
   implicit none
   private
   public :: CPU_SET_T, c_sched_getaffinity, c_sched_setaffinity
-  public :: affinitymask_to_cpu, cpu_to_affinitymask, GetCpuAffinity
+  public :: affinitymask_to_cpu, cpu_to_affinitymask, GetCpuAffinity, GetActiveCores
 #include <iso_c_binding_extras.hf>
   interface
     function GetCpuAffinity(cpumask, string, stringsize) result(nc) bind(C,name='GetCpuAffinity')
@@ -14,6 +14,11 @@ module c_sched_affinity
       integer(C_INT), intent(IN), value :: stringsize
       integer(C_INT) :: nc
     end function GetCpuAffinity
+    function GetActiveCores() result(ncores) bind(C,name='GetActiveCores')
+      import :: C_INT
+      implicit none
+      integer(C_INT) :: ncores
+    end function GetActiveCores
   end interface
 
  contains
@@ -65,6 +70,8 @@ program cpu_set
   integer(C_SIZE_T) :: sz
   integer :: i, j, status
   character(len=1024) :: string
+
+  print *,'ncores =',GetActiveCores()
 
   cpumask%set = 0
   cpu = 0

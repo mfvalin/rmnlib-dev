@@ -44,3 +44,8 @@ int GetCpuAffinity(cpu_set_t *mask, char *str, int strsize)
   *ptr = 0;
   return(ptr - str); // number of characters in string
 }
+
+// get number of active cores in system (including SMT/HT)
+int GetActiveCores(){
+  return sysconf(_SC_NPROCESSORS_CONF);
+}

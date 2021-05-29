@@ -3,8 +3,18 @@ module c_sched_affinity
   implicit none
   private
   public :: CPU_SET_T, c_sched_getaffinity, c_sched_setaffinity
-  public :: affinitymask_to_cpu, cpu_to_affinitymask
+  public :: affinitymask_to_cpu, cpu_to_affinitymask, GetCpuAffinity
 #include <iso_c_binding_extras.hf>
+  interface
+    function GetCpuAffinity(cpumask, string, stringsize) result(nc) bind(C,name='GetCpuAffinity')
+      import :: C_INT, CPU_SET_T, C_CHAR
+      implicit none
+      type(CPU_SET_T), intent(OUT) :: cpumask
+      character(C_CHAR), dimension(*), intent(OUT) :: string
+      integer(C_INT), intent(IN), value :: stringsize
+      integer(C_INT) :: nc
+    end function GetCpuAffinity
+  end interface
 
  contains
   subroutine affinitymask_to_cpu(cpumask, cpus, ncpu)     ! translate affinity mask into cpu array
@@ -54,6 +64,7 @@ program cpu_set
   integer, dimension(0:255) :: cpu
   integer(C_SIZE_T) :: sz
   integer :: i, j, status
+  character(len=1024) :: string
 
   cpumask%set = 0
   cpu = 0
@@ -77,6 +88,9 @@ program cpu_set
   call affinitymask_to_cpu(cpumask, cpu, size(cpu))
   print 2,cpu(0:127)
 2 format(128b1.1)
+
+  status = GetCpuAffinity(cpumask, string, len(string))
+  print *,'nc =',status,", '"//string(1:status)//"'"
 end program
 #endif
 

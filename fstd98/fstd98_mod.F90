@@ -13,58 +13,10 @@
 ! Author:
 !     M. Valin,   Recherche en Prevision Numerique, 2021
 !
-module copy_f2c_mod
-  use ISO_C_BINDING
-
-  private :: c_strnlen
-  interface
-    function c_strnlen(str, maxlen) result(strlen) bind(C, name='strnlen')
-      import :: C_CHAR, C_SIZE_T
-      implicit none
-      character(C_CHAR), dimension(*), intent(IN) :: str
-      integer(C_SIZE_T), intent(IN) :: maxlen
-      integer(C_SIZE_T) :: strlen
-    end function c_strnlen
-    function memset(s, byte, n) result(p) bind(C, name='memset')
-      import :: C_PTR, C_SIZE_T, C_INT
-      implicit none
-      type(C_PTR), intent(IN), value :: s
-      integer(C_INT), intent(IN), value :: byte
-      integer(C_SIZE_T), intent(IN), value :: n
-      type(C_PTR) :: p
-    end function memset
-  end interface
-contains
-  subroutine strncpy_f2c(f_str, c_str, n)    ! copy a Fortran string into a C string of at most n characters
-    implicit none
-    character(len=*), intent(IN) :: f_str
-    integer, intent(IN), value :: n
-    character(len=n), intent(OUT) :: c_str
-    integer :: clen
-    clen = min(len(f_str), n-1)              ! C string can accept at most n-1 bytes
-    c_str(1:clen) = f_str(1:clen)            ! copy string
-    c_str(clen:clen) = achar(0)              ! add terminating null
-  end subroutine strncpy_f2c
-
-  subroutine strncpy_c2f(f_str, c_str, n)    ! copy a C string of up to n characters into a Fortran string 
-    implicit none
-    character(len=*), intent(OUT) :: f_str
-    integer, intent(IN), value :: n
-    character(len=n), intent(IN) :: c_str
-    integer(C_SIZE_T) :: flen, clen
-    flen = len(f_str)
-    clen = n
-    clen = c_strnlen(c_str, clen)            ! C string cannot be longer thatn n bytes
-    clen = min(flen,clen)                    ! at most flen characters can fir in Fortran string
-    f_str(1:clen) = c_str(1:clen)            ! copy string
-    if(flen > clen) f_str(clen+1:flen) = ' ' ! pad with blanks
-  end subroutine strncpy_c2f
-
-end module
 
 module fstd98_mod
   use ISO_C_BINDING
-  use copy_f2c_mod
+  use f_c_strings_mod
   use c_fstd98_mod
   implicit none
 
@@ -122,6 +74,17 @@ module fstd98_mod
 
 
 contains
+
+  subroutine demo()
+    implicit none
+    type(C_STRING) :: s, t
+    character(C_CHAR), dimension(:), pointer :: str
+    logical ok
+    ok = s%new(128)
+    str => s%str()
+    call s%del()
+    ok = s%new(t)
+  end subroutine demo
 
 ! /*****************************************************************************
 !  *                              F S T O U V                                  *

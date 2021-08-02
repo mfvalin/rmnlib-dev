@@ -14,6 +14,8 @@
 !     M. Valin,   Recherche en Prevision Numerique, 2021
 !
 
+#include <f_c_string_macros.hf>
+
 module fstd98_mod
   use ISO_C_BINDING
   use f_c_strings_mod
@@ -103,7 +105,7 @@ contains
     integer(C_INT), intent(IN), value :: iun
     character(len=*), intent(IN) :: options
     integer(C_INT) :: status
-    status = c_fstouv(iun, trim(options)//achar(0))
+    status = c_fstouv(iun, F2C_TRIM(options))
   end function fstouv
 
   function ouv(this, iun, options) result (status) ! calls fstouv
@@ -868,7 +870,7 @@ contains
     gty = grtyp
     eti = etiket
     status = c_fstecr(field, work, npak, iun, date, deet, npas, ni, nj, nk, &
-                      ip1, ip2, ip3, typ//achar(0), nom//achar(0), eti//achar(0), gty//achar(0),  &
+                      ip1, ip2, ip3, F2C_CHAR(typ), F2C_CHAR(nom), F2C_CHAR(eti), F2C_CHAR(gty),  &
                       ig1, ig2, ig3, ig4, datyp, rewrite)
   end subroutine fstecr
 
@@ -1052,7 +1054,7 @@ contains
     gty = grtyp
     eti = etiket
     call fstecr(field, work, npak, iun, date, deet, npas, ni, nj, nk, &
-                ip1, ip2, ip3, typ//achar(0), nom//achar(0), eti//achar(0), gty//achar(0),  &
+                ip1, ip2, ip3, F2C_CHAR(typ), F2C_CHAR(nom), F2C_CHAR(eti), F2C_CHAR(gty),  &
                 ig1, ig2, ig3, ig4, datyp, rewrite)
     status = 0
   end function fstecr_s
@@ -1365,7 +1367,7 @@ contains
       character(len=*), intent(IN) :: option
       integer(C_INT), intent(IN), value :: val, getmode
       integer(C_INT) :: status
-      status = c_fstopi(trim(option)//achar(0), val, getmode)
+      status = c_fstopi(F2C_TRIM(option), val, getmode)
     end function fstopi
 
 !  /***************************************************************************** 
@@ -1387,7 +1389,7 @@ contains
       character(len=*), intent(IN) :: option
       integer(C_INT), intent(IN), value :: val, getmode
       integer(C_INT) :: status
-      status = c_fstopl(trim(option)//achar(0), val, getmode)
+      status = c_fstopl(F2C_TRIM(option), val, getmode)
     end function fstopl
 
 !  /***************************************************************************** 
@@ -1410,7 +1412,7 @@ contains
       real(C_FLOAT), intent(IN), value :: val
       integer(C_INT), intent(IN), value :: getmode
       integer(C_INT) :: status
-      status = c_fstopr(trim(option)//achar(0), val, getmode)
+      status = c_fstopr(F2C_TRIM(option), val, getmode)
     end function fstopr
 
 ! /*****************************************************************************
@@ -1433,7 +1435,7 @@ contains
       character(len=*), intent(IN) :: val
       integer(C_INT), intent(IN), value :: getmode
       integer(C_INT) :: status
-      status = c_fstopc(trim(option)//achar(0), trim(val)//achar(0), getmode)
+      status = c_fstopc(F2C_TRIM(option), F2C_TRIM(val), getmode)
     end function fstopc
 
 !  /*****************************************************************************
@@ -1451,7 +1453,7 @@ contains
       implicit none
       character(len=*), intent(IN) :: path
       integer(C_INT) :: status
-      status = c_fstcheck(trim(path)//achar(0))
+      status = c_fstcheck(F2C_TRIM(path))
     end function fstcheck
 
 !  /***************************************************************************** 
@@ -1551,7 +1553,7 @@ contains
       integer(C_INT), intent(IN), value :: iun
       character(len=*), intent(IN) :: options
       integer(C_INT) :: status
-      status = c_fstvoi(iun, trim(options)//achar(0))
+      status = c_fstvoi(iun, F2C_TRIM(options))
     end function fstvoi
 
     function voi(this, options) result(status)
@@ -1559,7 +1561,7 @@ contains
       class(fstd98), intent(IN) :: this
       character(len=*), intent(IN) :: options
       integer(C_INT) :: status
-      status = fstvoi(this%iun, trim(options)//achar(0))
+      status = fstvoi(this%iun, F2C_TRIM(options))
     end function voi
 
 !  /***************************************************************************** 
@@ -1607,7 +1609,7 @@ contains
       integer(C_INT), intent(IN), value :: iun
       character(len=*), intent(IN) :: option
       integer(C_INT) :: status
-      status = c_fstapp(iun, trim(option)//achar(0))
+      status = c_fstapp(iun, F2C_TRIM(option))
     end function fstapp
 
     function app(this, option) result(status)

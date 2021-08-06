@@ -77,17 +77,6 @@ module fstd98_mod
 
 contains
 
-  subroutine demo()
-    implicit none
-    type(C_STRING) :: s, t
-    character(C_CHAR), dimension(:), pointer :: str
-    logical ok
-    ok = s%new(128)
-    str => s%str()
-    call s%del()
-    ok = s%new(t)
-  end subroutine demo
-
 ! /*****************************************************************************
 !  *                              F S T O U V                                  *
 !  *                                                                           *
@@ -1621,3 +1610,35 @@ contains
     end function app
 ! 
 end module
+
+subroutine test_fstd98
+  use fstd98_mod
+  implicit none
+  integer :: iun, status
+  integer, external :: fnom
+  logical :: ok
+  type(fstd98) :: fst
+  status = fnom(iun, 'test_98.fst','STD+RND',0)
+  print *,'iun =',iun
+  status = fst%ouv(iun,'RND')
+  status = fst%frm()
+  
+end subroutine test_fstd98
+
+subroutine test_str()
+  use f_c_strings_mod
+  implicit none
+  type(C_STRING) :: s, t
+  character(C_CHAR), dimension(:), pointer :: str
+  logical ok
+  ok = s%new(128)
+  str => s%str()
+  call s%del()
+  ok = s%new(t)
+  
+end subroutine test_str
+
+program demo_test
+  call test_fstd98
+!   call test_str
+end program

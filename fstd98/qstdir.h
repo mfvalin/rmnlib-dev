@@ -1,1 +1,1 @@
-../../librmn/fstd98/qstdir.h
+../../librmn/src/fstd98/qstdir.h

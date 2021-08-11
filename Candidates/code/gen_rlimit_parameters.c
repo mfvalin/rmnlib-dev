@@ -4,6 +4,11 @@
 
 int main(int argc, char **argv){
   printf("module rlimits_mod\n  use ISO_C_BINDING\n  implicit none\n");
+  printf("  type, bind(C) :: rusage\n") ;
+  printf("    integer(C_INT64_T) :: usr_cpu\n") ;
+  printf("    integer(C_INT64_T) :: sys_cpu\n") ;
+  printf("    integer(C_INT64_T) :: max_rss\n") ;
+  printf("  end type\n");
   printf("  type, bind(C) :: rlimit\n") ;
   if( sizeof(rlim_t) == 4) {
     printf("    integer(C_INT32_T) :: rlim_cur\n    integer(C_INT32_T) :: rlim_max\n") ;
@@ -28,6 +33,8 @@ int main(int argc, char **argv){
   printf("  integer, parameter :: RLIMIT_RTTIME = %d\n",RLIMIT_RTTIME);
   printf("  integer, parameter :: RLIMIT_SIGPENDING = %d\n",RLIMIT_SIGPENDING);
   printf("  integer, parameter :: RLIMIT_STACK = %d\n",RLIMIT_STACK);
+  printf("  integer, parameter :: RUSAGE_SELF = %d\n",RUSAGE_SELF);
+  printf("  integer, parameter :: RUSAGE_CHILDREN = %d\n",RUSAGE_CHILDREN);
   printf("  interface\n") ;
   printf("    function getrlimit(resource, limit) result(status) bind(C,name='getrlimit')\n") ;
   printf("      import :: C_INT, rlimit\n") ;
@@ -43,6 +50,13 @@ int main(int argc, char **argv){
   printf("      type(rlimit), intent(IN) :: limit\n") ;
   printf("      integer(C_INT) :: status\n") ;
   printf("    end function setrlimit\n") ;
+  printf("    function getrusage(who, usage) result(status) bind(C,name='F90_getrusage')\n") ;
+  printf("      import :: C_INT, rusage\n") ;
+  printf("      implicit none\n") ;
+  printf("      integer(C_INT), intent(IN), value :: who\n") ;
+  printf("      type(rusage), intent(OUT) :: usage\n") ;
+  printf("      integer(C_INT) :: status\n") ;
+  printf("    end function getrusage\n") ;
   printf("  end interface\n") ;
   printf("  end module \n");
 }

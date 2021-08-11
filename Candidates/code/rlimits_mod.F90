@@ -1,6 +1,11 @@
 module rlimits_mod
   use ISO_C_BINDING
   implicit none
+  type, bind(C) :: rusage
+    integer(C_INT64_T) :: usr_cpu
+    integer(C_INT64_T) :: sys_cpu
+    integer(C_INT64_T) :: max_rss
+  end type
   type, bind(C) :: rlimit
     integer(C_INT64_T) :: rlim_cur
     integer(C_INT64_T) :: rlim_max
@@ -22,6 +27,8 @@ module rlimits_mod
   integer, parameter :: RLIMIT_RTTIME = 15
   integer, parameter :: RLIMIT_SIGPENDING = 11
   integer, parameter :: RLIMIT_STACK = 3
+  integer, parameter :: RUSAGE_SELF = 0
+  integer, parameter :: RUSAGE_CHILDREN = -1
   interface
     function getrlimit(resource, limit) result(status) bind(C,name='getrlimit')
       import :: C_INT, rlimit
@@ -37,5 +44,12 @@ module rlimits_mod
       type(rlimit), intent(IN) :: limit
       integer(C_INT) :: status
     end function setrlimit
+    function getrusage(who, usage) result(status) bind(C,name='F90_getrusage')
+      import :: C_INT, rusage
+      implicit none
+      integer(C_INT), intent(IN), value :: who
+      type(rusage), intent(OUT) :: usage
+      integer(C_INT) :: status
+    end function getrusage
   end interface
   end module 

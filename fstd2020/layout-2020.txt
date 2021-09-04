@@ -64,9 +64,9 @@
        32 bits   8 bits 16 bits 8 bits   32 bits      32 bits  8 bits 16 bits 8 bits   32 bits
 
    LNG   length      : 3 64 bit elements
-   ZR    zero byte   : used as endianness detector
+   ZR    zero byte   : used as endianness indicator
    RT    record type : 3 (Start Of Segment)
-   SIGN  file type signature (APPL is FsTd for "RPN standard" files)
+   SIGN  file type signature (APPL would be FsT2 for "RPN standard" files version 2)
    Note: RT == 0 is ILLEGAL
 
    ===================================================================================================
@@ -92,14 +92,14 @@
    8 bits     48 bits    8 bits       64 bits       8 bits     48 bits    8 bits
 
 
-         LNG       ZR             RT            SEGL             ZR             RT       LNG
-   +-------------+----+---------+----+------------+------------+----+---------+----+-------------+
-   |  0x00000003 |0x00| 0x0000  |0x04|  SEGL(lo)  |  SEGL(hi)  |0x00| 0x0000  |0x04|  0x00000003 |
-   +-------------+----+---------+----+------------+------------+----+---------+----+-------------+
-       32 bits   8 bits 16 bits 8 bits  32 bits      32 bits   8 bits 16 bits 8 bits   32 bits
+         LNG       ZR             RT                <--------SEGL--------->                ZR             RT       LNG
+   +-------------+----+---------+----+------------+------------+------------+------------+----+---------+----+-------------+
+   |  0x00000004 |0x00| 0x0000  |0x04| 0xCAFEFADE |  SEGL(lo)  |  SEGL(hi)  | 0xBEBEFADA |0x00| 0x0000  |0x04|  0x00000004 |
+   +-------------+----+---------+----+------------+------------+------------+------------+----+---------+----+-------------+
+       32 bits   8 bits 16 bits 8 bits   32 bits      32 bits      32 bits      32 bits  8 bits 16 bits 8 bits   32 bits
 
-   LNG   length      : 3 64 bit elements
-   ZR    zero byte   : used as endianness detector
+   LNG   length      : 4 64 bit elements
+   ZR    zero byte   : used as endianness indicator
    RT    record type : 4 (End Of Segment)
    SEGL  length of segment in BYTES, including S O S and E O S ( SEGL(lo) | ( SEGL(hi) << 32 ) )
    Note: RT == 0 is ILLEGAL
@@ -120,7 +120,7 @@
          upper 4 bits 110b  : lower 29 bits = length in  512 byte units ( 0->256GB)
          upper 4 bits 1110  : lower 28 bits = length in 4096 byte units ( 0->1TB)
    META  record metadata (also used as endianness indicator) 0xAABBCC00 (upper 8 bits AA MAY NOT BE 0)
-         AA is record type 0 : invalid, 1 : data, 2 : directory, 3: S O S, 4 : E O S
+         AA is record type 0 : invalid, 1 : data, 2 : directory, 3: S O S, 4 : E O S, 0xFF deleted record
 
      ZR        LNG         RT      data payload       RT        LNG         ZR
    +----+----------------+----+                     +----+----------------+----+
@@ -136,9 +136,10 @@
        32 bits   8 bits 16 bits 8 bits                     8 bits 16 bits 8 bits    32 bits
 
    LNG   length      : in 64 bit elements (0 -> 2 PBytes) = LNG(lo) | ( LNG(hi)<<32 )
-   ZR    zero byte   : used as endianness detector
+   ZR    zero byte   : used as endianness indicator
    RT    record type : 1 (data)
    Note: RT == 0 is ILLEGAL
+   RT = 0 : invalid, 1 : data, 2 : directory, 3: S O S, 4 : E O S, 0xFF : deleted record
    data payload is a sequence of 32 bit items
 
    ===================================================================================================
@@ -172,7 +173,7 @@
        32 bits   8 bits 16 bits 8 bits                     8 bits 16 bits 8 bits    32 bits
 
    LNG   length      : in 64 bit elements 
-   ZR    zero byte   : used as endianness detector
+   ZR    zero byte   : used as endianness indicator
    RT    record type : 2 (directory block)
    Note: RT == 0 is ILLEGAL
    directory is a sequence of 32 bit items

@@ -40,26 +40,28 @@ static int max_rsf_files_open=1024 ;
 
 typedef void * pointer ;
 
-static pointer *rsf_files = NULL ;
-static int rsf_files_open = 0 ;
-
-// struct RSF_file{                  // PRIVATE structure
+// struct RSF_file{                 // internal structure for access to Random Segmented Files
 //   uint32_t version ;
 //   int32_t fd ;
-//   off_t file_pos ;               // current file position
-//   off_t file_siz ;               // file size (should NEVER SHRINKS)
-//   dir_body *dir ;                    // pointer to directory file
+//   DIR_PAGE *dirpages ;           // pointer to directory pages chain
+//   DIR_PAGE *lastpage ;           // pointer to last directory page
 //   RSF_file *next ;               // pointer to next file if "linked"
-//   RSF_match match ;
+//   uint32_t *mask ;               // mask used for metadata matches
+//   RSF_match_fn *match ;          // pointer to metadata matching function
+//   off_t file_pos ;               // current file position
+//   off_t file_siz ;               // file size (should NEVER SHRINK)
 //   uint32_t head_type ;           // 0 : invalid, 1: read, 2 : written
 //   uint32_t tail_type ;           // 0 : invalid, 1: read, 2 : written
-//   start_of_record  last_head ;   // last record header written/read
-//   end_of_record    last_tail ;   // last record trailer written/read
+//   start_of_record  last_head ;   // last record header written/read (validated by head_type)
+//   end_of_record    last_tail ;   // last record trailer written/read (validated by tail_type)
 //   uint32_t mode ;                // file mode (RO/RW/AP)
-//   uint32_t direntry_size ;       // size of directory entry
-//   uint32_t nwrites ;
-//   uint32_t buf_used ;            // number of used words in buffer
-//   uint32_t buf_size ;            // size of dynamic buffer
+//   uint32_t direntry_size ;       // size of a directory entry (in 32 bit units)
+//   uint32_t direntry_used ;       // number of directory entries in use (all pages)
+//   uint32_t direntry_slots ;      // max number of entries in directory (nb of directory pages * DIR_PAGE_SIZE)
+//   uint32_t nwritten ;            // number of records written
+//   uint32_t nread ;               // number of records read
+//   uint32_t buf_used ;            // number of used words in buffer (see RSF_file_flex)
+//   uint32_t buf_size ;            // size of dynamic buffer (see RSF_file_flex)
 // } ;
 void RSF_filedump(RSF_handle h)
 {
@@ -72,7 +74,11 @@ void RSF_filedump(RSF_handle h)
   fprintf(stderr,"\n==================================================================\n");
 }
 
-static void *allocate_rsf_files_open()
+// =================================  table of pointers to rsf files =================================
+static pointer *rsf_files = NULL ;                            // global table of pointers to rsf files
+static int rsf_files_open = 0 ;
+
+static void *allocate_rsf_files_open()                        // allocate global table of pointers to rsf files
 {
   struct rlimit rlim ;
   getrlimit(RLIMIT_NOFILE, &rlim) ;                           // get file limit for process
@@ -80,7 +86,20 @@ static void *allocate_rsf_files_open()
   return  malloc( sizeof(pointer) * max_rsf_files_open) ;     // allocate table for max number of allowed files
 }
 
-static int32_t get_rsf_file_slot(void *p)
+static int32_t find_rsf_file_slot(void *p)                    // find slot in global table
+{
+  int i ;
+  if(rsf_files == NULL) rsf_files = allocate_rsf_files_open() ;
+  if(rsf_files == NULL) return -1 ;
+
+  if(p == NULL) return -1 ;
+  for(i = 0 ; i < max_rsf_files_open ; i++) {
+    if(rsf_files[i] == p) return i ;  // slot number
+  }
+  return -1  ; // not found
+}
+
+static int32_t get_rsf_file_slot(void *p)                     // find and fill a free slot in global table
 {
   int i ;
 
@@ -91,13 +110,13 @@ static int32_t get_rsf_file_slot(void *p)
     if(rsf_files[i] == NULL) {
       rsf_files[i] = p ;
       rsf_files_open ++ ;
-      return i ;
+      return i ;  // slot number
     }
   }
   return -1 ;     // eventually add code to allocate a larger table
 }
 
-static int32_t purge_rsf_file_slot(void *p)
+static int32_t purge_rsf_file_slot(void *p)                   // remove file pointer from global table
 {
   int i ;
 
@@ -114,7 +133,141 @@ static int32_t purge_rsf_file_slot(void *p)
   return -1 ;
 }
 
-RSF_handle rsf_open(        // function returns a ahndle to the RSF file (null if error)
+// =================================  directory management =================================
+// add a blank directory page to the list of pages for file pinted to by fp
+// return pointer to new page if successful, NULL if unsuccessful
+static DIR_PAGE *add_directory_page(RSF_file *fp)
+{
+  int i ;
+  DIR_PAGE *newpage = malloc(sizeof(DIR_PAGE) + fp->direntry_size * sizeof(uint32_t) * DIR_PAGE_SIZE) ;
+
+  if(newpage == NULL) return NULL ;      // allocation failure
+
+  newpage->next = NULL ;                 // initialize new directory page
+  newpage->nused = 0 ;                   // page is empty
+  newpage->nslots = DIR_PAGE_SIZE ;      // page capacity
+  fp->direntry_slots += DIR_PAGE_SIZE ;  // update total directory size
+
+  for(i = 0 ; i < DIR_PAGE_SIZE ; i++){  // technically not necessary, but cleaner
+    newpage->warl[i].wa = 0 ;
+    newpage->warl[i].rl = 0 ;
+  }
+  bzero(newpage->meta, fp->direntry_size * sizeof(uint32_t) * DIR_PAGE_SIZE) ;
+
+  if(fp->lastpage == NULL){          // first page allocated to this file
+    fp->lastpage = newpage ;         // last page
+    fp->dirpages = fp->lastpage ;    // first page
+  }else{
+    fp->lastpage->next = newpage ;   // link new page at end
+  }
+  return newpage ;                   // address of new page
+}
+
+// add a new record entry into the file directory
+// returns file index in upper 32 bits, record index in lower 32 bits
+// meta   : record primary metadata (used for searches) (direntry_size 32 bit elements)
+// wa     : address in file (in 64 bit units)
+// rl     : record length (metadata + data + head + tail) (in 64 bit units)
+static int64_t add_directory_entry(RSF_file *fp, uint32_t *meta, uint64_t wa, uint64_t rl)
+{
+  DIR_PAGE *cur_page ;
+  int index, i ;
+  int64_t slot ;
+
+  slot = find_rsf_file_slot(fp) ;    // slot number
+  if(slot == -1) return -1 ;         // file not found in master table
+  slot <<= 32 ;                      // in upper 32 bits
+
+  if(fp->direntry_slots <= fp->direntry_used) cur_page = add_directory_page(fp) ;  // directory is full (or non existent)
+  if(cur_page == NULL) return -1 ;   // failed to allocate new directory page
+
+  slot |= fp->direntry_used ;                 // add index into directory
+  fp->direntry_used++ ;                       // bump directory used slots
+  index = cur_page->nused ;
+  cur_page->nused ++ ;                        // bump directory page used slots
+
+  cur_page->warl[index].wa = wa ;             // insert file address
+  cur_page->warl[index].rl = rl ;             // insert record length
+  index = index * fp->direntry_size ;
+  for(i = 0 ; i < fp->direntry_size ; i++ ){  // copy metadata
+    cur_page->meta[index+i] = meta[i] ;
+  }
+  
+  return 1 ;
+}
+
+// scan directory of file fp to find a record whose metadata matched 
+static int64_t scan_directory(RSF_file *fp, uint32_t *criteria, uint32_t *mask, uint64_t *wa, uint64_t *rl)
+{
+  int64_t slot = -1 ;
+  DIR_PAGE *cur_page ;
+  RSF_match_fn *scan_match = NULL ;
+  int i, index ;
+  int nitems ;
+  uint32_t *meta ;
+
+  *wa = 0 ;  // precondition for failure
+  *rl = 0 ;
+  if(fp == NULL) return slot ;
+  slot = find_rsf_file_slot(fp) ; 
+  if(slot == -1) return slot ;         // file not found in master table
+  slot <<= 32 ;                      // in upper 32 bits
+
+  scan_match = fp->match ;           // get metadata match function associated to this file
+  if(scan_match == NULL) scan_match = &rsf_default_match ;         // no function associated
+  nitems = fp->direntry_size ;
+
+  cur_page = fp->dirpages ;
+  index = 0 ;
+  while(cur_page != NULL) {
+    meta = cur_page->meta ;             // bottom of metadata for this page
+    for(i = 0 ; i < cur_page->nused ; i++){
+      if((*scan_match)(criteria, meta, mask, nitems) == 1 ){   // do we have a match at position i ?
+        slot = slot + index + i ;       // add record number to slot
+        *wa = cur_page->warl[i].wa ;    // position of record in file
+        *rl = cur_page->warl[i].rl ;    // record length
+        return slot ;
+      }
+      meta += nitems ;                  // metadata for next record
+    }
+    cur_page = cur_page->next ;
+    index = index + DIR_PAGE_SIZE ;   // bump index by directory page size
+  }
+  return slot ;
+}
+
+// =================================  user callable rsf file functions =================================
+// check if fd is an open rsf file
+int32_t is_valid_rsf_file(int fd)  // 1 if fd points to a valid rsf file, 0 otherwise
+{
+  start_of_segment sos ;
+  end_of_segment eos ;
+  off_t offset = 0 ;
+  ssize_t nbytes ;
+
+  if(fd < 0) return 0 ;                    // invalid fd
+  offset = lseek(fd, offset, SEEK_SET) ;   // beginning of file
+  nbytes = read(fd, &sos, sizeof(sos)) ;   // read start_of_segment
+  if(nbytes != sizeof(sos)) return 0 ;     // file is too short
+  if((sos.head.zr != 0) || (sos.head.rt != RT_SOS) || (sos.head.rl != RL_SOS) ||
+     (sos.tail.zr != 0) || (sos.tail.rt != RT_SOS) || (sos.tail.rl != RL_SOS) ) return 0 ;     // bad markers
+  if(strncmp((const char *)sos.sig1,"RSF0",4) != 0) return 0 ;                                 // did not find 'RSF0'
+  if(sos.sig2 != 0xDEADBEEFFEEBDAED) return 0 ;                                                // bad signature
+
+  offset = -sizeof(eos) ;
+  offset = lseek(fd, offset, SEEK_END) ;   // end of file - length of end of segment
+  nbytes = read(fd, &eos, sizeof(eos)) ;   // read end_of_segment
+  if(nbytes != sizeof(eos)) return 0 ;     // file is too short
+  if((eos.head.zr != 0) || (eos.head.rt != RT_EOS) || (eos.head.rl != RL_EOS) ||
+     (eos.tail.zr != 0) || (eos.tail.rt != RT_EOS) || (eos.tail.rl != RL_EOS) ) return 0 ;     // bad markers
+  if(eos.sig1 != 0xBEBEFADAADAFEBEB) return 0 ;     // bad signature
+  if(eos.sig2 != 0xCAFEFADEEDAFEFAC) return 0 ;     // bad signature
+  return 1 ;
+}
+
+// open a Random Segmented File for reading/writing/appending
+// returns a handle to the RSF file (null if error)
+RSF_handle rsf_open(
   char *name,               // file name
   int32_t options,          // open options (RO/RW/AP)
   char *app,                // application signature (4 characters)
@@ -125,7 +278,7 @@ RSF_handle rsf_open(        // function returns a ahndle to the RSF file (null i
   RSF_file *fp ;
   RSF_handle h ;
   h.p = NULL ;
-  int flags, slot ;
+  int32_t flags, slot, valid ;
   ssize_t nbytes ;
   char *mode ;
   struct{
@@ -155,7 +308,7 @@ RSF_handle rsf_open(        // function returns a ahndle to the RSF file (null i
     if(fp->fd >= 0){
       fp->file_pos = lseek(fp->fd, 0, SEEK_END) ;    // get file size
       if(DEBUG) printf("DEBUG: file position at end = %ld\n", fp->file_pos) ;
-      if(fp->file_pos == 0){                           // new file, create empty file with empty directory
+      if(fp->file_pos == 0){                           // new file, create minimal empty file with empty directory
         if(DEBUG) printf("DEBUG: creating file = '%s', fd = %d\n", name, fp->fd) ;
         write(fp->fd, &zero_file, sizeof(zero_file)) ;
         mode = "create" ;
@@ -175,16 +328,18 @@ RSF_handle rsf_open(        // function returns a ahndle to the RSF file (null i
     if(DEBUG) printf("DEBUG: open file '%s' in %s mode failed,\n", name, mode) ;
     return h ;
   }else{
-    if(DEBUG) printf("DEBUG: file '%s' open in %s mode\n", name, mode) ;
+    valid = is_valid_rsf_file(fp->fd) ;
+    if(DEBUG) printf("DEBUG: file '%s' open in %s mode, valid = %d\n", name, mode, valid) ;
   }
 
-  fp->mode = options ;
-  fp->match = rsf_default_match ;
+  fp->mode     = options ;
+  fp->match    = rsf_default_match ;
   fp->buf_size = bufsz ;
   fp->file_pos = lseek(fp->fd, 0, SEEK_END) ;     // position at end
   fp->file_siz = fp->file_pos ;                              // get file size
   fp->file_pos = lseek(fp->fd, -sizeof(eor_eos), SEEK_END) ; // position before directory record tail
-  bzero(&eor_eos, sizeof(eor_eos)) ;
+  fp->next_write = fp->file_siz - sizeof(end_of_segment) ;   // will write over end of segment
+  bzero(&eor_eos, sizeof(eor_eos)) ;                  // fill with zero before reading
   nbytes = read(fp->fd, &eor_eos, sizeof(eor_eos) ) ; // get directory record tail + EOS record
   if( nbytes != sizeof(eor_eos) ) {
     fprintf(stderr, "ERROR: file '%s' unexpectedly truncated\n", name);
@@ -208,6 +363,8 @@ RSF_handle rsf_open(        // function returns a ahndle to the RSF file (null i
   return h ;    // return handle
 }
 
+// close Random Segmented File
+// return 0 upon success, -1 in case of error
 int32_t rsf_close (RSF_handle rsf)
 {
   RSF_file *fp = (RSF_file *) rsf.p ;
@@ -216,6 +373,9 @@ int32_t rsf_close (RSF_handle rsf)
 
   if(fp->nwritten > 0){
     if(DEBUG) printf("DEBUG: %d records written\n", fp->nwritten) ;
+    // ADD CODE TO PROPERLY WRAP UP THE FILE
+    // WRITE directory
+    // WRITE End Of Segment marker
   }
   if(fp->fd >= 0) close (fp->fd) ;
   if(DEBUG) printf("DEBUG: fd = %d closed\n", fp->fd);
@@ -225,8 +385,32 @@ int32_t rsf_close (RSF_handle rsf)
   return 0 ;
 }
 
-int64_t rsf_seek(RSF_handle rsf, void *metadata, void *mask)
+int64_t rsf_write(RSF_handle rsf, void *data, uint64_t data_size, void *meta, void *aux, uint32_t aux_size)
 {
+  RSF_file *fp = (RSF_file *) rsf.p ;
+  uint64_t wa, rl ;
+  int64_t slot ;
+
+  if(fp == NULL) return -1 ;   // not open
+
+  wa = 0 ;
+  rl = fp->direntry_size + data_size + aux_size ;
+  rl = (rl + 1) / 2 ; // 64 bit units
+  rl = RL_SOR + rl + RL_EOR ;
+  slot = add_directory_entry(fp, (uint32_t *)meta, wa, rl) ;
+  return slot ;
+}
+
+// look for record with metadata matching criteria (where mask bits are 1)
+int64_t rsf_seek(RSF_handle rsf, void *criteria, void *mask)
+{
+  RSF_file *fp ;
+  uint64_t wa, rl ;
+
+  if(rsf.p == NULL) return -1 ;  // invalid file pointer
+  fp = (RSF_file *) rsf.p ;
+  return scan_directory(fp, criteria, mask, &wa, &rl) ;
+
   return -1 ;
 }
 
@@ -243,10 +427,10 @@ RSF_match_fn *rsf_set_match(RSF_handle rsf, RSF_match_fn *fn)
 
 // match criteria and meta where mask has bits set to 1
 // if mask == NULL, it is not used
-int32_t rsf_default_match(RSF_handle rsf, uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems)
+int32_t rsf_default_match(uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems)
 {
   int i ;
-  printf("DEBUG: calling rsf_default_match\n");
+  printf("DEBUG: calling rsf_default_match, nitems = %d\n", nitems);
   if(mask != NULL) {
     for(i = 0 ; i < nitems ; i++){
       if( (criteria[i] & mask[i]) != (meta[i] & mask[i]) ) return 0 ;  // mismatch, no need to go any further
@@ -260,10 +444,10 @@ int32_t rsf_default_match(RSF_handle rsf, uint32_t *criteria, uint32_t *meta, ui
 }
 
 // same as rsf_default_match but ignores mask
-int32_t rsf_base_match(RSF_handle rsf, uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems)
+int32_t rsf_base_match(uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems)
 {
   int i ;
-  printf("DEBUG: calling rsf_base_match\n");
+  printf("DEBUG: calling rsf_base_match, nitems = %d\n", nitems);
   for(i = 0 ; i < nitems ; i++){
     if( criteria[i] != meta[i] ) return 0 ;  // mismatch, no need to go any further
   }
@@ -274,6 +458,7 @@ int32_t rsf_base_match(RSF_handle rsf, uint32_t *criteria, uint32_t *meta, uint3
 int32_t rsf_match(RSF_handle rsf, uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems)
 {
   RSF_file *fp = (RSF_file *) rsf.p ;
+  if(nitems <=0)  nitems = fp->direntry_size ;
 
-  return (fp->match != NULL) ? (fp->match)(rsf, criteria, meta, mask, nitems) : rsf_base_match(rsf, criteria, meta, mask, nitems) ;
+  return (fp->match != NULL) ? (fp->match)(criteria, meta, mask, nitems) : rsf_base_match(criteria, meta, mask, nitems) ;
 }

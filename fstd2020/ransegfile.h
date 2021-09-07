@@ -36,7 +36,7 @@ typedef struct{   // this struct only contains a pointer to the actual full cont
 } RSF_handle ;
 
 // typedef int32_t (*int_function)() ;
-typedef int32_t RSF_match_fn(RSF_handle rsf, uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems) ;
+typedef int32_t RSF_match_fn(uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems) ;
 
 RSF_handle rsf_open(char *name, int32_t options, char *app, int32_t dirsize, int32_t entrysize, int32_t bufsz) ;
 
@@ -46,7 +46,8 @@ int64_t rsf_seek(RSF_handle rsf, void *metadata, void *mask) ;
 
 RSF_match_fn *rsf_set_match(RSF_handle rsf, RSF_match_fn *fn) ;
 
-int32_t rsf_default_match(RSF_handle rsf, uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems) ;
+int32_t rsf_default_match(uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems) ;
+int32_t rsf_base_match(uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems) ;
 
 int32_t rsf_match(RSF_handle rsf, uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems) ;
 

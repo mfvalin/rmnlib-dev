@@ -101,7 +101,7 @@ struct DIR_PAGE{    // directory page
   uint32_t meta[] ;              // metadata [nslots, direntry_size]
 } ;
 
-#define NULL_RSF_file {RSF_VERSION, -1, NULL, NULL, NULL, NULL, &rsf_default_match, 0, 0, 0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0, 0, 0, 0, 0, 0, 0 }
+#define NULL_RSF_file {RSF_VERSION, -1, NULL, NULL, NULL, NULL, &rsf_default_match, 0, 0, 0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 
 typedef struct RSF_file RSF_file;
 
@@ -124,6 +124,7 @@ struct RSF_file{                 // internal structure for access to Random Segm
   uint32_t direntry_size ;       // size of a directory entry (in 32 bit units)
   uint32_t direntry_used ;       // number of directory entries in use (all pages)
   uint32_t direntry_slots ;      // max number of entries in directory (nb of directory pages * DIR_PAGE_SIZE)
+  uint32_t directory_size ;      // size of directory record (in 64 bit units)
   uint32_t nwritten ;            // number of records written
   uint32_t nread ;               // number of records read
   uint32_t buf_used ;            // number of used words in buffer (see RSF_file_flex)

@@ -34,6 +34,16 @@ static struct{             // empty file template
                 {RT_DIR ,RL_EMPTY_DIR, 0}, {0 , 0}, {RT_DIR, RL_EMPTY_DIR, 0} ,
                 {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB, (sizeof(zero_file)/sizeof(uint64_t)), 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}} };
 
+// eos with zero segment length
+static end_of_segment zero_eos = {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB, (sizeof(zero_file)/sizeof(uint64_t)), 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}} ;
+
+// empty directory
+static struct{
+  start_of_record sor ;    // empty directory record
+  dir_body dir ;
+  end_of_record eor ;
+} empty_dir = { {RT_DIR ,RL_EMPTY_DIR, 0}, {0 , 0}, {RT_DIR, RL_EMPTY_DIR, 0} } ;
+
 static struct RSF_file rss_null = NULL_RSF_file ;
 
 static int max_rsf_files_open=1024 ;
@@ -176,12 +186,14 @@ static int64_t add_directory_entry(RSF_file *fp, uint32_t *meta, uint64_t wa, ui
 
   slot = find_rsf_file_slot(fp) ;    // slot number
   if(slot == -1) return -1 ;         // file not found in master table
+  slot++ ;                           // origin 1
   slot <<= 32 ;                      // in upper 32 bits
 
   if(fp->direntry_slots <= fp->direntry_used) cur_page = add_directory_page(fp) ;  // directory is full (or non existent)
   if(cur_page == NULL) return -1 ;   // failed to allocate new directory page
 
   slot |= fp->direntry_used ;                 // add index into directory
+  slot++ ;                                    // origin 1
   fp->direntry_used++ ;                       // bump directory used slots
   index = cur_page->nused ;
   cur_page->nused ++ ;                        // bump directory page used slots
@@ -193,7 +205,7 @@ static int64_t add_directory_entry(RSF_file *fp, uint32_t *meta, uint64_t wa, ui
     cur_page->meta[index+i] = meta[i] ;
   }
   
-  return 1 ;
+  return slot ;
 }
 
 // scan directory of file fp to find a record whose metadata matched 
@@ -234,6 +246,17 @@ static int64_t scan_directory(RSF_file *fp, uint32_t *criteria, uint32_t *mask, 
     index = index + DIR_PAGE_SIZE ;   // bump index by directory page size
   }
   return slot ;
+}
+
+// =================================  internal rsf file functions =================================
+// set file position just before performing the first write (truncate file before last segment directory)
+static int32_t truncate_last_segment(RSF_file *fp){
+  off_t offset = (fp->directory_size + RL_EOS) * sizeof(uint64_t) ;
+  off_t offset2 ;
+
+  offset2 = lseek(fp->fd, -offset, SEEK_END) ;     // position just before directory and End Of Segment
+printf("DEBUG: truncate at %ld (by %ld), fp->directory_size = %d\n",offset2, offset,fp->directory_size );  
+  return ftruncate(fp->fd, offset2) ;
 }
 
 // =================================  user callable rsf file functions =================================
@@ -335,29 +358,29 @@ RSF_handle rsf_open(
   fp->mode     = options ;
   fp->match    = rsf_default_match ;
   fp->buf_size = bufsz ;
-  fp->file_pos = lseek(fp->fd, 0, SEEK_END) ;     // position at end
+  fp->file_pos = lseek(fp->fd, 0, SEEK_END) ;                // position at end
   fp->file_siz = fp->file_pos ;                              // get file size
   fp->file_pos = lseek(fp->fd, -sizeof(eor_eos), SEEK_END) ; // position before directory record tail
   fp->next_write = fp->file_siz - sizeof(end_of_segment) ;   // will write over end of segment
-  bzero(&eor_eos, sizeof(eor_eos)) ;                  // fill with zero before reading
-  nbytes = read(fp->fd, &eor_eos, sizeof(eor_eos) ) ; // get directory record tail + EOS record
-  if( nbytes != sizeof(eor_eos) ) {
-    fprintf(stderr, "ERROR: file '%s' unexpectedly truncated\n", name);
+  bzero(&eor_eos, sizeof(eor_eos)) ;                         // fill with zero before reading
+  nbytes = read(fp->fd, &eor_eos, sizeof(eor_eos) ) ;        // get directory record tail + EOS record
+  slot = get_rsf_file_slot(fp) ;
+
+  if( (nbytes != sizeof(eor_eos)) | (slot < 0) ) {
+    fprintf(stderr, "ERROR: file '%s' unexpectedly truncated or global file table full\n", name);
     free(h.p) ;
     h.p = NULL ;
     return h ;
   }
   h.p = fp ;
-
-  slot = get_rsf_file_slot(fp) ;
+  fp->directory_size = eor_eos.eor.rl ;
   if(DEBUG) {
     int64_t rl = eor_eos.eor.rl ;
     int64_t rlt = eor_eos.eos.tail.rl ;
-    printf("DEBUG: file = '%s', fd = %d, slot = %d, size = %ld\n", name, fp->fd, slot, fp->file_siz) ;
+    printf("DEBUG: file = '%s', fd = %d, slot = %d, size = %ld, directory size = %d\n", name, fp->fd, slot, fp->file_siz, fp->directory_size) ;
     printf("DEBUG: End Of Segment, rt = %d, rl = %ld ", eor_eos.eos.head.rt, rlt) ;
     printf("s1 =%9.8lx, s2 =%9.8lx, dir type(length) = %d(%ld) \n", eor_eos.eos.sig1>>32, eor_eos.eos.sig2>>32, eor_eos.eor.rt, rl) ;
   }
-
   // now we can read the directory record(s) and consolidate them if more than 1 (starting from the end)
 
   return h ;    // return handle
@@ -368,6 +391,7 @@ RSF_handle rsf_open(
 int32_t rsf_close (RSF_handle rsf)
 {
   RSF_file *fp = (RSF_file *) rsf.p ;
+  off_t offset ;
 
   if(fp == NULL) return -1 ;   // not open
 
@@ -375,7 +399,12 @@ int32_t rsf_close (RSF_handle rsf)
     if(DEBUG) printf("DEBUG: %d records written\n", fp->nwritten) ;
     // ADD CODE TO PROPERLY WRAP UP THE FILE
     // WRITE directory
+    offset = lseek(fp->fd, 0, SEEK_END) ;  // position at end
+write(fp->fd, &empty_dir, sizeof(empty_dir)) ;
     // WRITE End Of Segment marker
+    offset = lseek(fp->fd, 0, SEEK_END) ;  // position at end
+    zero_eos.segl = (offset / sizeof(uint64_t)) + RL_EOS ;
+    write(fp->fd, &zero_eos, sizeof(zero_eos)) ;
   }
   if(fp->fd >= 0) close (fp->fd) ;
   if(DEBUG) printf("DEBUG: fd = %d closed\n", fp->fd);
@@ -385,7 +414,7 @@ int32_t rsf_close (RSF_handle rsf)
   return 0 ;
 }
 
-int64_t rsf_write(RSF_handle rsf, void *data, uint64_t data_size, void *meta, void *aux, uint32_t aux_size)
+int64_t rsf_write(RSF_handle rsf, void *data, uint64_t data_size , void *meta, void *aux, uint32_t aux_size)
 {
   RSF_file *fp = (RSF_file *) rsf.p ;
   uint64_t wa, rl ;
@@ -393,11 +422,17 @@ int64_t rsf_write(RSF_handle rsf, void *data, uint64_t data_size, void *meta, vo
 
   if(fp == NULL) return -1 ;   // not open
 
+
   wa = 0 ;
   rl = fp->direntry_size + data_size + aux_size ;
   rl = (rl + 1) / 2 ; // 64 bit units
   rl = RL_SOR + rl + RL_EOR ;
   slot = add_directory_entry(fp, (uint32_t *)meta, wa, rl) ;
+  if(slot < 0) return slot ;
+printf("DEBUG: writing data size = %ld, meta size = %d, aux size = %d\n", data_size, fp->direntry_size, aux_size);
+  if(fp->nwritten == 0) truncate_last_segment(fp) ;  // first write
+  fp->nwritten ++ ;
+
   return slot ;
 }
 

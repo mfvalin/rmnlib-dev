@@ -44,6 +44,8 @@ int32_t rsf_close (RSF_handle rsf) ;
 
 int64_t rsf_seek(RSF_handle rsf, void *metadata, void *mask) ;
 
+int64_t rsf_write(RSF_handle rsf, void *data, uint64_t data_size, void *meta, void *aux, uint32_t aux_size) ;
+
 RSF_match_fn *rsf_set_match(RSF_handle rsf, RSF_match_fn *fn) ;
 
 int32_t rsf_default_match(uint32_t *criteria, uint32_t *meta, uint32_t *mask, int nitems) ;

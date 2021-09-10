@@ -30,19 +30,19 @@ static struct{             // empty file template
   end_of_record eor ;
   end_of_segment eos ;     // end of segment
 } zero_file = 
-             { {{RT_SOS ,RL_SOS, 0}, {'R','S','F','0','<','-','-','>'}, 0xDEADBEEFFEEBDAED,                        {RT_SOS ,RL_SOS, 0}} ,
+             { {{RT_SOS ,RL_SOS, 0}, {'R','S','F','0','<','-','-','>'}, 0, 0xDEADBEEFFEEBDAED,                         {RT_SOS ,RL_SOS, 0}} ,
                 {RT_DIR ,RL_EMPTY_DIR, 0}, {0 , 0}, {RT_DIR, RL_EMPTY_DIR, 0} ,
-                {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB, (sizeof(zero_file)/sizeof(uint64_t)), 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}} };
+                {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB, 0, (sizeof(zero_file)/sizeof(uint64_t)), 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}} };
 
 // eos with zero segment length
-static end_of_segment zero_eos = {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB, (sizeof(zero_file)/sizeof(uint64_t)), 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}} ;
+static end_of_segment zero_eos = {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB, 0, (sizeof(zero_file)/sizeof(uint64_t)), 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}} ;
 
 // empty directory
 static struct{
   start_of_record sor ;    // empty directory record
   dir_body dir ;
   end_of_record eor ;
-} empty_dir = { {RT_DIR ,RL_EMPTY_DIR, 0}, {0 , 0}, {RT_DIR, RL_EMPTY_DIR, 0} } ;
+} empty_dir = { {RT_DIR ,RL_EMPTY_DIR, 0}, {0 , 0, 0}, {RT_DIR, RL_EMPTY_DIR, 0} } ;
 
 static struct RSF_file rss_null = NULL_RSF_file ;
 
@@ -400,6 +400,7 @@ int32_t rsf_close (RSF_handle rsf)
     // ADD CODE TO PROPERLY WRAP UP THE FILE
     // WRITE directory
     offset = lseek(fp->fd, 0, SEEK_END) ;  // position at end
+    // maybe check for a valid EOR
 write(fp->fd, &empty_dir, sizeof(empty_dir)) ;
     // WRITE End Of Segment marker
     offset = lseek(fp->fd, 0, SEEK_END) ;  // position at end

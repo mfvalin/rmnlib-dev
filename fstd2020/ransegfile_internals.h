@@ -64,6 +64,7 @@ typedef struct{                     // trailer for all records (allows little/bi
 typedef struct{           // SOS (Start Of Segment) record
   start_of_record head ;  // rt=3, zr=0, rl=4
   unsigned char sig1[8] ; // RSF marker + application marker ('RSF0FsT2' for standard files 2020)
+  uint64_t direntry_size ;  // PROVISIONAL SIZE (will be reduced later)
   uint64_t sig2 ;         // 0xDEADBEEFFEEBDAED (bi-endian signature)
   end_of_record tail ;    // rt=3, zr=0, rl=4
 } start_of_segment ;
@@ -72,6 +73,7 @@ typedef struct{           // SOS (Start Of Segment) record
 typedef struct{           // EOS (End Of Segment) record
   start_of_record head ;  // rt=4, zr=0, rl=5
   uint64_t sig1 ;         // 0xBEBEFADAADAFEBEB (bi-endian signature)
+  uint64_t direntry_size ;  // PROVISIONAL SIZE (will be reduced later)
   uint64_t segl ;         // segment length (64 bit units)
   uint64_t sig2 ;         // 0xCAFEFADEEDAFEFAC (bi-endian signature)
   end_of_record tail ;    // rt=4, zr=0, rl=5
@@ -79,6 +81,7 @@ typedef struct{           // EOS (End Of Segment) record
 
 // the size of the following struct MUST be a MULTIPLE of 64 bits (after allocation)
 typedef struct{                  // allocated size should be 1 + nslots * direntry_size
+  uint64_t direntry_size ;       // PROVISIONAL SIZE (will be reduced later)
   uint32_t nused ;               // number of directory entries in use
   uint32_t nslots ;              // max number of entries in directory
   uint64_t data[] ;

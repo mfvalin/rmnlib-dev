@@ -25,6 +25,7 @@
 // RSF_AP implies that the file MUST exist and will be written into (implies RSF_RW)
 #define RSF_AP    8
 // RSF_SEG1 means consolidate segments into ONE (invalid if RSF_RW not set)
+// otherwise le last segment gets extended and the other segments are untouched
 #define RSF_SEG1  1024
 
 #define _LARGEFILE64_SOURCE

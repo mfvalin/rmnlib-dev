@@ -29,20 +29,17 @@ static struct{             // empty file template
   dir_body dir ;
   end_of_record eor ;
   end_of_segment eos ;     // end of segment
-} zero_file = 
-             { {{RT_SOS ,RL_SOS, 0}, {'R','S','F','0','<','-','-','>'}, 0, 0xDEADBEEFFEEBDAED,                         {RT_SOS ,RL_SOS, 0}} ,
-                {RT_DIR ,RL_EMPTY_DIR, 0}, {0 , 0}, {RT_DIR, RL_EMPTY_DIR, 0} ,
-                {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB, 0, (sizeof(zero_file)/sizeof(uint64_t)), 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}} };
+} zero_file = { EMPTY_SOS , EMPTY_DIR_RECORD , EMPTY_EOS };
 
 // eos with zero segment length
-static end_of_segment zero_eos = {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB, 0, (sizeof(zero_file)/sizeof(uint64_t)), 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}} ;
+static end_of_segment zero_eos = EMPTY_EOS ;
 
 // empty directory
 static struct{
   start_of_record sor ;    // empty directory record
   dir_body dir ;
   end_of_record eor ;
-} empty_dir = { {RT_DIR ,RL_EMPTY_DIR, 0}, {0 , 0, 0}, {RT_DIR, RL_EMPTY_DIR, 0} } ;
+} empty_dir = { EMPTY_DIR_RECORD } ;
 
 static struct RSF_file rss_null = NULL_RSF_file ;
 
@@ -60,6 +57,7 @@ typedef void * pointer ;
 //   RSF_match_fn *match ;          // pointer to metadata matching function
 //   off_t file_pos ;               // current file position
 //   off_t file_siz ;               // file size (should NEVER SHRINK)
+//   off_t next_write ;             // position for next write
 //   uint32_t head_type ;           // 0 : invalid, 1: read, 2 : written
 //   uint32_t tail_type ;           // 0 : invalid, 1: read, 2 : written
 //   start_of_record  last_head ;   // last record header written/read (validated by head_type)
@@ -68,6 +66,7 @@ typedef void * pointer ;
 //   uint32_t direntry_size ;       // size of a directory entry (in 32 bit units)
 //   uint32_t direntry_used ;       // number of directory entries in use (all pages)
 //   uint32_t direntry_slots ;      // max number of entries in directory (nb of directory pages * DIR_PAGE_SIZE)
+//   uint32_t directory_size ;      // size of directory record (in 64 bit units)
 //   uint32_t nwritten ;            // number of records written
 //   uint32_t nread ;               // number of records read
 //   uint32_t buf_used ;            // number of used words in buffer (see RSF_file_flex)
@@ -153,7 +152,6 @@ static DIR_PAGE *add_directory_page(RSF_file *fp)
 
   if(newpage == NULL) return NULL ;      // allocation failure
 
-  newpage->next = NULL ;                 // initialize new directory page
   newpage->nused = 0 ;                   // page is empty
   newpage->nslots = DIR_PAGE_SIZE ;      // page capacity
   fp->direntry_slots += DIR_PAGE_SIZE ;  // update total directory size
@@ -162,14 +160,33 @@ static DIR_PAGE *add_directory_page(RSF_file *fp)
     newpage->warl[i].wa = 0 ;
     newpage->warl[i].rl = 0 ;
   }
-  bzero(newpage->meta, fp->direntry_size * sizeof(uint32_t) * DIR_PAGE_SIZE) ;
+  bzero( newpage->meta, fp->direntry_size * sizeof(uint32_t) * DIR_PAGE_SIZE ) ;
 
-  if(fp->lastpage == NULL){          // first page allocated to this file
-    fp->lastpage = newpage ;         // last page
-    fp->dirpages = fp->lastpage ;    // first page
-  }else{
-    fp->lastpage->next = newpage ;   // link new page at end
+  // do we have a page table ? 
+  // if not, allocate a default sized one, make sure there is always a NULL at the end
+  if(fp->pagetable == NULL) {
+    fp->pagetable = (DIR_PAGE **) malloc( (DEFAULT_PAGE_TABLE + 1) * sizeof(void *) ) ;  // 1 more entry than needed
+    if(fp->pagetable == NULL) return NULL ;                                              // allocation failed
+
+    bzero( fp->pagetable, (DEFAULT_PAGE_TABLE + 1) * sizeof(void *) ) ;                  // fill with NULLs
+    fp->dirpages = DEFAULT_PAGE_TABLE ;                                                  // current size of page table
+    fp->lastpage = -1 ;                                                                  // no pages used yet
   }
+  fp->lastpage = fp->lastpage + 1;     // bump last page used index
+
+  if(fp->lastpage >= fp->dirpages){    // page table too small, addd DEFAULT_PAGE_TABLE more entries
+    DIR_PAGE **newtable ;                                                     // new page table
+    newtable =  (DIR_PAGE **) malloc( (fp->dirpages + DEFAULT_PAGE_TABLE + 1) * sizeof(void *) ) ;
+    if(newtable == NULL ) return NULL ;                                       // allocation failed
+
+    bzero( newtable, (fp->dirpages + 1) * sizeof(void *) ) ;                  // fill new table with NULLs
+    memcpy( newtable, fp->pagetable, (fp->dirpages) * sizeof(void *) ) ;      // copy old table into new table
+    free(fp->pagetable) ;                                                     // free old table
+    fp->pagetable = newtable ;                                                // update directory page table pointer
+    fp->dirpages = fp->dirpages + DEFAULT_PAGE_TABLE ;                        // new size of page table
+  }
+  (fp->pagetable)[fp->lastpage] = newpage ;
+
   return newpage ;                   // address of new page
 }
 
@@ -217,21 +234,27 @@ static int64_t scan_directory(RSF_file *fp, uint32_t *criteria, uint32_t *mask, 
   int i, index ;
   int nitems ;
   uint32_t *meta ;
+  int scanpage ;
 
   *wa = 0 ;  // precondition for failure
   *rl = 0 ;
   if(fp == NULL) return slot ;
-  slot = find_rsf_file_slot(fp) ; 
-  if(slot == -1) return slot ;         // file not found in master table
-  slot <<= 32 ;                      // in upper 32 bits
+  if(fp->file_slot >= 0) {
+    slot = fp->file_slot ;             // get file slot from RSF
+  }else{
+    slot = find_rsf_file_slot(fp) ;    // get file slot from table
+  }
+  if(slot == -1) return slot ;         // file slot not found
+  slot <<= 32 ;                        // file slot in upper 32 bits
 
   scan_match = fp->match ;           // get metadata match function associated to this file
   if(scan_match == NULL) scan_match = &rsf_default_match ;         // no function associated
   nitems = fp->direntry_size ;
 
-  cur_page = fp->dirpages ;
-  index = 0 ;
-  while(cur_page != NULL) {
+  for(scanpage = 0, index = 0 ; scanpage < fp->dirpages ; scanpage++, index += DIR_PAGE_SIZE) {
+    cur_page = fp->pagetable[scanpage] ;
+    if(cur_page == NULL) break ;
+
     meta = cur_page->meta ;             // bottom of metadata for this page
     for(i = 0 ; i < cur_page->nused ; i++){
       if((*scan_match)(criteria, meta, mask, nitems) == 1 ){   // do we have a match at position i ?
@@ -242,10 +265,31 @@ static int64_t scan_directory(RSF_file *fp, uint32_t *criteria, uint32_t *mask, 
       }
       meta += nitems ;                  // metadata for next record
     }
-    cur_page = cur_page->next ;
-    index = index + DIR_PAGE_SIZE ;   // bump index by directory page size
   }
   return slot ;
+}
+
+// write directory to disk
+static int32_t write_directory(RSF_file *fp)
+{
+  uint8_t *dir_record ;
+  start_of_record *sorp ;
+  end_of_record *eorp ;
+  dir_body *dir ;
+  uint64_t dir_size = fp->direntry_size * fp->direntry_used * sizeof(uint32_t) + sizeof(dir_body) ;
+  uint64_t dir_rec_size = dir_size + sizeof(start_of_record) + sizeof(start_of_record) ;
+  uint8_t *sorpi, *diri, *eorpi ;
+
+  dir_record = (uint8_t *) malloc(dir_rec_size) ;  // allocate the directory record
+  if(dir_record == NULL) return -1 ;                                                                // malloc failed
+  sorp = (start_of_record *) dir_record ;                                     sorpi = (uint8_t *) sorp ;
+  dir  = (dir_body *) (dir_record + sizeof(start_of_record)) ;                  diri  = (uint8_t *) dir ;
+  eorp = (end_of_record *) (dir_record + sizeof(start_of_record) + dir_size) ;  eorpi = (uint8_t *) eorp ;
+fprintf(stderr,"DEBUG: sor %p, body %p, eor %p\n",sorp, dir, eorp) ;
+fprintf(stderr,"DEBUG: dir_size = %ld, dir_rec_size = %ld\n", dir_size, dir_rec_size) ;
+fprintf(stderr,"DEBUG: sorp - dir_record %ld, dir - sorp %ld, eorp  - dir %ld\n", sorpi-dir_record, diri - sorpi, eorpi - diri) ;
+  free(dir_record) ;  // deallocate temporaty space
+  return 0 ;
 }
 
 // =================================  internal rsf file functions =================================
@@ -260,7 +304,7 @@ printf("DEBUG: truncate at %ld (by %ld), fp->directory_size = %d\n",offset2, off
 }
 
 // =================================  user callable rsf file functions =================================
-// check if fd is an open rsf file
+// check if file descriptor fd belongs to a valid rsf file
 int32_t is_valid_rsf_file(int fd)  // 1 if fd points to a valid rsf file, 0 otherwise
 {
   start_of_segment sos ;
@@ -273,7 +317,7 @@ int32_t is_valid_rsf_file(int fd)  // 1 if fd points to a valid rsf file, 0 othe
   nbytes = read(fd, &sos, sizeof(sos)) ;   // read start_of_segment
   if(nbytes != sizeof(sos)) return 0 ;     // file is too short
   if((sos.head.zr != 0) || (sos.head.rt != RT_SOS) || (sos.head.rl != RL_SOS) ||
-     (sos.tail.zr != 0) || (sos.tail.rt != RT_SOS) || (sos.tail.rl != RL_SOS) ) return 0 ;     // bad markers
+     (sos.tail.zr != 0) || (sos.tail.rt != RT_SOS) || (sos.tail.rl != RL_SOS) ) return 0 ;     // bad SOS record length and/or type
   if(strncmp((const char *)sos.sig1,"RSF0",4) != 0) return 0 ;                                 // did not find 'RSF0'
   if(sos.sig2 != 0xDEADBEEFFEEBDAED) return 0 ;                                                // bad signature
 
@@ -282,10 +326,11 @@ int32_t is_valid_rsf_file(int fd)  // 1 if fd points to a valid rsf file, 0 othe
   nbytes = read(fd, &eos, sizeof(eos)) ;   // read end_of_segment
   if(nbytes != sizeof(eos)) return 0 ;     // file is too short
   if((eos.head.zr != 0) || (eos.head.rt != RT_EOS) || (eos.head.rl != RL_EOS) ||
-     (eos.tail.zr != 0) || (eos.tail.rt != RT_EOS) || (eos.tail.rl != RL_EOS) ) return 0 ;     // bad markers
-  if(eos.sig1 != 0xBEBEFADAADAFEBEB) return 0 ;     // bad signature
-  if(eos.sig2 != 0xCAFEFADEEDAFEFAC) return 0 ;     // bad signature
-  return 1 ;
+     (eos.tail.zr != 0) || (eos.tail.rt != RT_EOS) || (eos.tail.rl != RL_EOS) ) return 0 ;     // bad EOS record length and/or type
+  if(eos.sig1 != 0xBEBEFADAADAFEBEB) return 0 ;     // bad signature1
+  if(eos.sig2 != 0xCAFEFADEEDAFEFAC) return 0 ;     // bad signature2
+
+  return 1 ;  // valid file
 }
 
 // open a Random Segmented File for reading/writing/appending
@@ -401,6 +446,7 @@ int32_t rsf_close (RSF_handle rsf)
     // WRITE directory
     offset = lseek(fp->fd, 0, SEEK_END) ;  // position at end
     // maybe check for a valid EOR
+write_directory(fp) ;
 write(fp->fd, &empty_dir, sizeof(empty_dir)) ;
     // WRITE End Of Segment marker
     offset = lseek(fp->fd, 0, SEEK_END) ;  // position at end

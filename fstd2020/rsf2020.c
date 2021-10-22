@@ -143,18 +143,19 @@ static int32_t purge_rsf_file_slot(void *p)                   // remove file poi
 }
 
 // =================================  directory management =================================
-// add a blank directory page to the list of pages for file pinted to by fp
+// add a new blank directory page to the list of pages for file pointed to by fp
 // return pointer to new page if successful, NULL if unsuccessful
 static DIR_PAGE *add_directory_page(RSF_file *fp)
 {
   int i ;
+  // add to size of struc DIR_PAGE the needed size for the dynamic array (meta) at the end
   DIR_PAGE *newpage = malloc(sizeof(DIR_PAGE) + fp->direntry_size * sizeof(uint32_t) * DIR_PAGE_SIZE) ;
 
   if(newpage == NULL) return NULL ;      // allocation failure
 
   newpage->nused = 0 ;                   // page is empty
   newpage->nslots = DIR_PAGE_SIZE ;      // page capacity
-  fp->direntry_slots += DIR_PAGE_SIZE ;  // update total directory size
+  fp->direntry_slots += DIR_PAGE_SIZE ;  // update total available directory size
 
   for(i = 0 ; i < DIR_PAGE_SIZE ; i++){  // technically not necessary, but cleaner
     newpage->warl[i].wa = 0 ;
@@ -201,13 +202,20 @@ static int64_t add_directory_entry(RSF_file *fp, uint32_t *meta, uint64_t wa, ui
   int index, i ;
   int64_t slot ;
 
-  slot = find_rsf_file_slot(fp) ;    // slot number
-  if(slot == -1) return -1 ;         // file not found in master table
-  slot++ ;                           // origin 1
-  slot <<= 32 ;                      // in upper 32 bits
+  if(fp->file_slot >= 0) {
+    slot = fp->file_slot ;             // get file slot from RSF
+  }else{
+    slot = find_rsf_file_slot(fp) ;    // get file slot from file handle table
+  }
+  if(slot == -1) return -1 ;           // file slot not found
+  slot++ ;                             // origin 1 (so that a result of zero is invalid)
+  slot <<= 32 ;                        // in upper 32 bits
 
-  if(fp->direntry_slots <= fp->direntry_used) cur_page = add_directory_page(fp) ;  // directory is full (or non existent)
-  if(cur_page == NULL) return -1 ;   // failed to allocate new directory page
+  if(fp->direntry_slots <= fp->direntry_used) {  // directory is full (or non existent)
+    cur_page = add_directory_page(fp) ;
+    if(cur_page == NULL) return -1 ;             // failed to allocate new directory page
+  }
+  cur_page = fp->pagetable[fp->lastpage] ;       // get last page from page table
 
   slot |= fp->direntry_used ;                 // add index into directory
   slot++ ;                                    // origin 1
@@ -222,10 +230,10 @@ static int64_t add_directory_entry(RSF_file *fp, uint32_t *meta, uint64_t wa, ui
     cur_page->meta[index+i] = meta[i] ;
   }
   
-  return slot ;
+  return slot ;  // the minimum valid value is 0x100000001   (file slot 0, directory index 0)
 }
 
-// scan directory of file fp to find a record whose metadata matched 
+// scan directory of file fp to find a record whose (metadata & mask)  matches (criteria & mask)
 static int64_t scan_directory(RSF_file *fp, uint32_t *criteria, uint32_t *mask, uint64_t *wa, uint64_t *rl)
 {
   int64_t slot = -1 ;
@@ -269,27 +277,91 @@ static int64_t scan_directory(RSF_file *fp, uint32_t *criteria, uint32_t *mask, 
   return slot ;
 }
 
-// write directory to disk
+// get directory entry i for file fp
+static inline void get_dir_entry(RSF_file *fp, int indx, uint64_t *wa, uint64_t *rl, uint32_t *meta) 
+{
+  int page = indx >> DIR_PAGE_SHFT ;
+  int slot = indx & DIR_PAGE_MASK ;
+  int j ;
+  *wa = (fp->pagetable[page])->warl[slot].wa ;
+  *rl = (fp->pagetable[page])->warl[slot].rl ;
+  for(j = 0 ; j < fp->direntry_size ; j++){
+    meta[j] = ((fp->pagetable[page])->meta)[j] ;
+  }
+}
+
+// dump directory to stdout
+static void dump_directory(RSF_file *fp)
+{
+  int i ;
+  disk_dir_entry entry ;
+
+  for(i = 0 ; i < fp->direntry_used ; i++) {
+    get_dir_entry(fp, i, &entry.wa, &entry.rl, entry.meta) ;
+  }
+}
+
+// write directory to storage device
 static int32_t write_directory(RSF_file *fp)
 {
-  uint8_t *dir_record ;
-  start_of_record *sorp ;
+//   uint8_t *dir_record ;
+//   start_of_record *sorp ;
+//   dir_body *dir ;
+//   uint64_t dir_rec_size = dir_size + sizeof(start_of_record) + sizeof(end_of_record) ;
+//   uint8_t *sorpi, *diri, *eorpi ;
+  disk_dir_entry *entry ;
+  char *e ;
   end_of_record *eorp ;
-  dir_body *dir ;
-  uint64_t dir_size = fp->direntry_size * fp->direntry_used * sizeof(uint32_t) + sizeof(dir_body) ;
-  uint64_t dir_rec_size = dir_size + sizeof(start_of_record) + sizeof(start_of_record) ;
-  uint8_t *sorpi, *diri, *eorpi ;
+  uint64_t dir_entry_size = fp->direntry_size * sizeof(uint32_t) + sizeof(disk_dir_entry) ;
+  size_t dir_rec_size = sizeof(start_of_record) + sizeof(disk_directory) + dir_entry_size * fp->direntry_used + sizeof(end_of_record) ;
+  disk_directory *ddir ;
+  char *p = NULL ;
+  off_t offset = 0 ;
+  ssize_t n_to_write, n_written ;
 
-  dir_record = (uint8_t *) malloc(dir_rec_size) ;  // allocate the directory record
-  if(dir_record == NULL) return -1 ;                                                                // malloc failed
-  sorp = (start_of_record *) dir_record ;                                     sorpi = (uint8_t *) sorp ;
-  dir  = (dir_body *) (dir_record + sizeof(start_of_record)) ;                  diri  = (uint8_t *) dir ;
-  eorp = (end_of_record *) (dir_record + sizeof(start_of_record) + dir_size) ;  eorpi = (uint8_t *) eorp ;
-fprintf(stderr,"DEBUG: sor %p, body %p, eor %p\n",sorp, dir, eorp) ;
-fprintf(stderr,"DEBUG: dir_size = %ld, dir_rec_size = %ld\n", dir_size, dir_rec_size) ;
-fprintf(stderr,"DEBUG: sorp - dir_record %ld, dir - sorp %ld, eorp  - dir %ld\n", sorpi-dir_record, diri - sorpi, eorpi - diri) ;
-  free(dir_record) ;  // deallocate temporaty space
-  return 0 ;
+  int i, status ;
+
+  status = -1 ;
+  if( (p = malloc(dir_rec_size )) == NULL) return status ;  // allocation failed
+  ddir = (disk_directory *) p ;
+  eorp = (end_of_record *) p + dir_rec_size - sizeof(end_of_record) ;
+
+  ddir->sor.rt = RT_DIR ;                           // start of record
+  ddir->sor.rl = dir_rec_size / sizeof(uint64_t) ;
+  ddir->sor.zr = 0 ;
+
+  ddir->direntry_size = dir_entry_size ;            // directory record body
+  ddir->entries_nused = fp->direntry_used ;
+
+  eorp->rt = RT_DIR ;                               // end or record
+  eorp->rl = dir_rec_size / sizeof(uint64_t) ;
+  eorp->zr = 0 ;
+
+  // fill ddir->entry
+  e = (char *) &ddir->entry[0] ;                    // start of directory metadata portion
+  for(i = 0 ; i < fp->direntry_used ; i++){         // fill from in core directory
+    entry = (disk_dir_entry *) e ;
+    get_dir_entry(fp, i, &(entry->wa), &(entry->rl), entry->meta) ;   // get wa, rl, meta for entry i from in core directory
+    e += dir_entry_size ;
+  }
+
+  offset = lseek(fp->fd, offset, SEEK_END) ;        // position at end of file
+  n_to_write = dir_rec_size ;
+  n_written = write(fp->fd, p, n_to_write) ;        // write directory record
+  if(n_written == n_to_write) status = 0 ;
+
+  free(p) ;
+  return status ;
+
+//   dir_record = (uint8_t *) malloc(dir_rec_size) ;  // allocate the directory record
+//   if(dir_record == NULL) return -1 ;                                                                // malloc failed
+//   sorp = (start_of_record *) dir_record ;                                     sorpi = (uint8_t *) sorp ;
+//   dir  = (dir_body *) (dir_record + sizeof(start_of_record)) ;                  diri  = (uint8_t *) dir ;
+//   eorp = (end_of_record *) (dir_record + sizeof(start_of_record) + dir_size) ;  eorpi = (uint8_t *) eorp ;
+// fprintf(stderr,"DEBUG: sor %p, body %p, eor %p\n",sorp, dir, eorp) ;
+// fprintf(stderr,"DEBUG: dir_size = %ld, dir_rec_size = %ld\n", dir_size, dir_rec_size) ;
+// fprintf(stderr,"DEBUG: sorp - dir_record %ld, dir - sorp %ld, eorp  - dir %ld\n", sorpi-dir_record, diri - sorpi, eorpi - diri) ;
+//   free(dir_record) ;  // deallocate temporaty space
 }
 
 // =================================  internal rsf file functions =================================

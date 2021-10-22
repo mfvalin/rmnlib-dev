@@ -32,6 +32,7 @@ module F_C_base_string_mod
   interface FC_switch                     !  switch between the 2 formats
     module procedure Fortran_TO_C_string  ! (fstring -> cstring)
     module procedure C_TO_Fortran_string  ! (cstring -> fstring)
+    module procedure C_PTR_TO_Fortran_string  ! (C_PTR -> fstring)
   end interface
 
   interface FC_strlen   ! number of "useful" characters in string ( <= size of string)
@@ -42,6 +43,15 @@ module F_C_base_string_mod
   interface FC_strsize  ! size of string ( >= length of string)
     module procedure string_size_null_terminated
     module procedure string_size_fortran_variable
+  end interface
+
+  interface
+    function c_strnlen(str) result(length, maxlen) bind(C,name='strnlen')
+      import C_PTR, C_SIZE_T
+      type(C_PTR), intent(IN), value :: str
+      integer(C_SIZE_T), intent(IN), value :: maxlen
+      integer(C_SIZE_T) :: length
+    end function c_strlen
   end interface
 
   contains
@@ -80,6 +90,33 @@ module F_C_base_string_mod
     enddo
     if(length > length0) f_str(length0+1:length) = ' '   ! pad with blanks if necessary
   end function C_TO_Fortran_string
+
+  function C_PTR_TO_Fortran_string(c_strp, lng, trim) result(f_str)
+    implicit none
+    type(C_PTR), intent(IN)                     :: c_strp  ! pointer to null terminated array of characters
+    integer, intent(IN), optional               :: lng     ! minimum length of result fstring (ignore if trim is .true.
+    logical, intent(IN), optional               :: trim    ! if true, trim result
+    character(len=:), allocatable               :: f_str   ! Fortran character variable (len=*) (fstring)
+    integer(C_SIZE_T) :: length, length0, maxlen
+    integer :: i
+    character(C_CHAR), dimension(:), pointer :: c_str
+
+    maxlen = 1024*1024*1024
+    length  = c_strnlen(c_strp, maxlen)                ! effective cstring length (stops at first NULL character)
+    call C_F_POINTER(c_strp, c_str, [length])
+    if(present(lng)) length = max(length, lng)
+    if(present(trim)) then
+      if(trim) length = length0                ! shorten length0 to effective length of cstring (and override lng if present)
+    endif
+
+    allocate(character(len=length) :: f_str)   ! allocate result fstring
+
+    do i = 1, length0                          ! copy from input up to effective string length
+      f_str(i:i) = c_str(i)
+    enddo
+    if(length > length0) f_str(length0+1:length) = ' '   ! pad with blanks if necessary
+
+  end function C_PTR_TO_Fortran_string
 
   ! convert Fortran character(len=*) fstring into a  C compatible null terminated character array (cstring)
   ! optional argument lng specifies the minimum capacity of the result cstring

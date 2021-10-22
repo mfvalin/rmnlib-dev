@@ -108,22 +108,48 @@ struct WARL{
   uint64_t rl ;    // record length
 } ;
 
+// directory record on storage device templates
+//
+// disk entry in the directory on storage device
+// used by disk_directory
+//
+typedef struct{
+  uint64_t wa ;       // word address relative to start of segment
+  uint64_t rl ;       // record length
+  uint32_t meta[] ;   // normally [direntry_size]
+} disk_dir_entry ;
+//
+// the end of record address has to be fudged as the address of directory.entry[direntry_size * entries_nused]
+//
+// the disk_dir_entry address has to be fudged as the address of directory.entry[direntry_size * entry_index]
+//
+// disk_directory allocated size should be 
+//    sizeof(start_of_record) + 
+//    sizeof(disk_directory)  + 
+//    direntry_size * entries_nused * sizeof(unit32_t) + 
+//    sizeof(end_of_record)
+// the directory will normally be followed on the storage device by an End Of Segment record
+//
+typedef struct{
+  start_of_record sor ;
+  uint32_t entries_nused ;          // number of directory entries used
+  uint32_t direntry_size ;          // size of a directory entry (in 32 bit units)
+  uint32_t entry[] ;                // entry[] cannot be used directly
+} disk_directory ;                  // doubly 
+
 typedef struct DIR_PAGE DIR_PAGE ;
 
+// the following 3 defines MUST BE KEPT CONSISTENT, DIR_PAGE_SIZE is a POWER OF 2, DIR_PAGE_SHFT is log2(DIR_PAGE_SIZE)
 #define DIR_PAGE_SIZE 512
+#define DIR_PAGE_MASK (DIR_PAGE_SIZE-1)
+#define DIR_PAGE_SHFT 9
+
 struct DIR_PAGE{    // directory page
-//   DIR_PAGE *next ;
   uint32_t nused ;               // number of entries in use
   uint32_t nslots ;              // max number of entries in page
   WARL warl[DIR_PAGE_SIZE] ;     // file address + length for record
   uint32_t meta[] ;              // metadata [nslots, direntry_size] (allocated as [DIR_PAGE_SIZE, direntry_size] )
 } ;
-
-// struct directory{                // in core directory
-//   DIR_PAGE *first ;              // pointer to foirst directory page
-//   uint32_t nused ;               // number of directory entries in use
-//   uint32_t nslots ;              // max number of entries in directory chain
-// } ;
 
 typedef struct RSF_file RSF_file;
 
@@ -137,12 +163,9 @@ struct RSF_file{                 // internal (in memory) structure for access to
   RSF_match_fn *match ;          // pointer to metadata matching function
   DIR_PAGE **pagetable ;         // directory page table (pointers to directory pages for this file)
   RSF_file *next ;               // pointer to next file if "linked" (NULL if not linked)
-//   DIR_PAGE *dirpages ;           // pointer to directory pages chain (points to first page)
-//   DIR_PAGE *curpage ;            // pointer to current directory page (used only for read/scan functions) (NULL if unused)
-//   DIR_PAGE *lastpage ;           // pointer to last directory page
-  int32_t  dirpages ;
-  int32_t  curpage ;
-  int32_t  lastpage ;
+  int32_t  dirpages ;            // number of available directory pages
+  int32_t  curpage ;             // current page in use (may be -1)
+  int32_t  lastpage ;            // last directory page in use (-1 
   off_t file_pos ;               // current file position
   off_t file_siz ;               // file size (should NEVER SHRINK)
   off_t next_write ;             // position for next write
@@ -152,7 +175,7 @@ struct RSF_file{                 // internal (in memory) structure for access to
   end_of_record    last_tail ;   // last record trailer written/read (validated by tail_type)
   uint32_t mode ;                // file mode (RO/RW/AP)
   uint32_t direntry_size ;       // size of a directory entry (in 32 bit units)
-  uint32_t direntry_used ;       // number of directory entries in use (all pages)
+  uint32_t direntry_used ;       // number of directory entries in use (all pages belonging to this file)
   uint32_t direntry_slots ;      // max number of entries in directory (nb of directory pages * DIR_PAGE_SIZE)
   uint32_t directory_size ;      // size of directory record (in 64 bit units)
   uint32_t nwritten ;            // number of records written

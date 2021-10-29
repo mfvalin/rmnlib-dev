@@ -16,11 +16,12 @@
 ! some basic Fortran functions for string manipulation
 ! string format #1 (fstring) : character(len=*) blank padded character variables
 ! string format #2 (cstring) : character(C_CHAR), dimension(*) null termainated C compatible array
+! string format #3 (cptr)    : type(C_PTR) pointer to null termainated C compatible array
 !
 ! 3 generic functions are defined
-! FC_switch   : switch between the rtwo formats
+! FC_switch   : switch fstring <-> cstring or cptr -> fstring
 ! FC_strlen   : effective length of string (without trailing blanks or up to first NULL character)
-! FC_strsize  : full size of string
+! FC_strsize  : full size of string (full size of array or Fortran string)
 !
 module F_C_base_string_mod   
   use ISO_C_BINDING
@@ -29,10 +30,15 @@ module F_C_base_string_mod
 
   private :: c_strlen   ! do not export beyond this module
 
-  interface FC_switch                     !  switch between the 2 formats
-    module procedure Fortran_TO_C_string  ! (fstring -> cstring)
-    module procedure C_TO_Fortran_string  ! (cstring -> fstring)
+  interface FC_switch                         !  switch between the formats
+    module procedure Fortran_TO_C_string      ! (fstring -> cstring)
+    module procedure C_TO_Fortran_string      ! (cstring -> fstring)
     module procedure C_PTR_TO_Fortran_string  ! (C_PTR -> fstring)
+  end interface
+
+  interface CC_switch                         ! switch between the 2 representations of C NULL terminated string types
+    module procedure C_PTR_TO_C_string        ! (C_PTR -> cstring)
+    module procedure C_string_TO_C_PTR        ! (cstring -> C_PTR)
   end interface
 
   interface FC_strlen   ! number of "useful" characters in string ( <= size of string)
@@ -92,6 +98,23 @@ module F_C_base_string_mod
     enddo
     if(length > length0) f_str(length0+1:length) = ' '   ! pad with blanks if necessary
   end function C_TO_Fortran_string
+
+  function C_string_TO_C_PTR(c_str) result(c_strp)
+    implicit none
+    character(C_CHAR), dimension(*), intent(IN), target :: c_str
+    type(C_PTR) :: c_strp  ! pointer to null terminated array of characters
+    c_strp = C_LOC(c_str(1))
+  end function C_string_TO_C_PTR
+
+  function C_PTR_TO_C_string(c_strp) result(c_str)
+    implicit none
+    type(C_PTR), intent(IN), value            :: c_strp  ! pointer to null terminated array of characters
+    character(C_CHAR), dimension(:), pointer  :: c_str   ! null terminated array of characters
+    integer(C_SIZE_T) :: length, maxlen
+    maxlen  = 1024*1024*1024
+    length  = c_strnlen(c_strp, maxlen)
+    call C_F_POINTER(c_strp, c_str, [length+1])
+  end function C_PTR_TO_C_string
 
   function C_PTR_TO_Fortran_string(c_strp, lng, trim) result(f_str)
     implicit none

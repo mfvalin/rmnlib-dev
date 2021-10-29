@@ -46,12 +46,12 @@ module F_C_base_string_mod
   end interface
 
   interface
-    function c_strnlen(str) result(length, maxlen) bind(C,name='strnlen')
+    function c_strnlen(str, maxlen) result(length) bind(C,name='strnlen')
       import C_PTR, C_SIZE_T
       type(C_PTR), intent(IN), value :: str
       integer(C_SIZE_T), intent(IN), value :: maxlen
       integer(C_SIZE_T) :: length
-    end function c_strlen
+    end function c_strnlen
   end interface
 
   contains

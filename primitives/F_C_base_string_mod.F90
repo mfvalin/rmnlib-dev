@@ -25,10 +25,10 @@
 !
 module F_C_base_string_mod   
   use ISO_C_BINDING
-  use iso_c_binding_extras, ONLY : c_strlen  ! length of a C compatible null terminated array of characters
+!   use iso_c_binding_extras, ONLY : c_strlen  ! length of a C compatible null terminated array of characters
   implicit none
 
-  private :: c_strlen   ! do not export beyond this module
+  private :: c_strlen, c_strnlen   ! do not export beyond this module
 
   interface FC_switch                         !  switch between the formats
     module procedure Fortran_TO_C_string      ! (fstring -> cstring)
@@ -60,6 +60,11 @@ module F_C_base_string_mod
       integer(C_SIZE_T), intent(IN), value :: maxlen
       integer(C_SIZE_T) :: length
     end function c_strnlen
+    function c_strlen(str) result(length) bind(C,name='strlen')
+      import C_CHAR, C_SIZE_T
+      character(C_CHAR), dimension(*), intent(IN) :: str
+      integer(C_SIZE_T) :: length
+    end function c_strlen
   end interface
 
   contains

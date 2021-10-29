@@ -37,11 +37,13 @@ module F_C_base_string_mod
 
   interface FC_strlen   ! number of "useful" characters in string ( <= size of string)
     module procedure string_length_null_terminated    ! uses C library strlen()
+    module procedure cptr_length_null_terminated      ! uses C library strnlen()
     module procedure string_length_fortran_variable   ! uses Fortran len(trim())
   end interface
 
   interface FC_strsize  ! size of string ( >= length of string)
     module procedure string_size_null_terminated
+    module procedure cptr_size_null_terminated        ! uses C library strnlen(), same as FC_strlen in this case
     module procedure string_size_fortran_variable
   end interface
 
@@ -102,16 +104,17 @@ module F_C_base_string_mod
     character(C_CHAR), dimension(:), pointer :: c_str
 
     maxlen = 1024*1024*1024
-    length  = c_strnlen(c_strp, maxlen)                ! effective cstring length (stops at first NULL character)
-    call C_F_POINTER(c_strp, c_str, [length])
-    if(present(lng)) length = max(length, lng)
+    length0  = c_strnlen(c_strp, maxlen)                ! effective cstring length (stops at first NULL character)
+    call C_F_POINTER(c_strp, c_str, [length0])
+    length = length0
+    if(present(lng)) length = max(length0, lng)
     if(present(trim)) then
       if(trim) length = length0                ! shorten length0 to effective length of cstring (and override lng if present)
     endif
 
     allocate(character(len=length) :: f_str)   ! allocate result fstring
 
-    do i = 1, length0                          ! copy from input up to effective string length
+    do i = 1, length                           ! copy from input up to effective string length
       f_str(i:i) = c_str(i)
     enddo
     if(length > length0) f_str(length0+1:length) = ' '   ! pad with blanks if necessary
@@ -151,6 +154,15 @@ module F_C_base_string_mod
     length = c_strlen(cstring)
   end function string_length_null_terminated
 
+  function cptr_length_null_terminated(cptr) result(length)  ! full size of character array
+    implicit none
+    type(C_PTR), intent(IN), value :: cptr
+    integer :: length
+    integer(C_SIZE_T) :: maxlen
+    maxlen = 1024*1024*1024
+    length = c_strnlen(cptr, maxlen)
+  end function cptr_length_null_terminated
+
   function string_length_fortran_variable(fstring) result(length) ! effective length of cstring (without trailing blanks)
     implicit none
     character(len=*), intent(IN) :: fstring
@@ -165,6 +177,15 @@ module F_C_base_string_mod
     length = size(cstring)
   end function string_size_null_terminated
 
+  function cptr_size_null_terminated(cptr) result(length)  ! full size of character array (same as cptr_length_null_terminated)
+    implicit none
+    type(C_PTR), intent(IN), value :: cptr
+    integer :: length
+    integer(C_SIZE_T) :: maxlen
+    maxlen = 1024*1024*1024
+    length = c_strnlen(cptr, maxlen)
+  end function cptr_size_null_terminated
+
   function string_size_fortran_variable(fstring) result(length)  ! full size of Fortran fstring
     implicit none
     character(len=*), intent(IN) :: fstring
@@ -174,8 +195,9 @@ module F_C_base_string_mod
 
   subroutine FC_str_test
     implicit none
-    character(C_CHAR), dimension(:), allocatable :: alloc_str1, alloc_str2
-    character(len=:), allocatable, target :: alloc_name1, alloc_name0, alloc_name2
+    character(C_CHAR), dimension(:), allocatable, target :: alloc_str1, alloc_str2
+    character(len=:), allocatable, target :: alloc_name1, alloc_name0, alloc_name2, alloc_name3
+    type(C_PTR) :: strp
 
     alloc_name0 = "tagada    "
     print *,'alloc_name0 : size, len =',FC_strsize(alloc_name0), FC_strlen(alloc_name0)
@@ -194,6 +216,12 @@ module F_C_base_string_mod
     alloc_name2 = FC_switch(alloc_str2, trim=.true.)
     print *,"alloc_name2 = FC_switch(alloc_str2, 0, .t.) = '",alloc_name2,"'"
     print *,'alloc_name2 : size, len =',FC_strsize(alloc_name2), FC_strlen(alloc_name2)
+    strp = C_LOC(alloc_str1(1))
+    alloc_name3 = FC_switch(strp, 1000, .true.)
+    print *,"strp = C_LOC(alloc_str1(1)) ; alloc_name3 = FC_switch(strp, 1000, .true.)"
+    print *,"FC_strsize(strp), FC_strlen(strp)",FC_strsize(strp), FC_strlen(strp)
+    print *,'alloc_name3 = ',"'"//alloc_name3//"'"
+    print *,'alloc_name3 : size, len =',FC_strsize(alloc_name3), FC_strlen(alloc_name3)
 
   end subroutine FC_str_test
 

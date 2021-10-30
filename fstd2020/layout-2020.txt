@@ -50,12 +50,20 @@
          byte 4 is 0 in little endian files, byte 7 is 0 in big endian files
          bytes 4 and 7 MAY NOT BE BOTH 0
 
-     ZR        LNG         RT    SIGN        RT        LNG         ZR
-   +----+----------------+----+------------+----+----------------+----+
-   |0x00| 0x000000000003 |0x03| 'APPLSRF0' |0x03| 0x000000000003 |0x00|
-   +----+----------------+----+------------+----+----------------+----+
-   8 bits     48 bits    8 bits  64 bits   8 bits     48 bits    8 bits
+     ZR        LNG         RT    SIGN                                            RT        LNG         ZR
+   +----+----------------+----+------------+---------+---------+---------+----+----------------+----+
+   |0x00| 0x000000000006 |0x03| 'APPLSRF0' |   DESZ  |  SEGL   |   SIG2  |0x03| 0x000000000006 |0x00|
+   +----+----------------+----+------------+---------+---------+---------+----+----------------+----+
+   8 bits     48 bits    8 bits  8x8 bits    64 bits  64 bits    64 bits 8 bits     48 bits    8 bits
 
+   LNG   length      : 6 64 bit elements
+   ZR    zero byte   : used as endianness indicator
+   RT    record type : 3 (Start Of Segment)
+   SIGN  file type signature (APPL would be FsT2 for "RPN standard" files version 2)
+   DESZ  directory entry size
+   SIG2  0xDEADBEEFFEEBDAED (bi-endian signature)
+   SEGL  length of segment in 64 bit units, including S O S and E O S 
+   
 
          LNG       ZR             RT      SIGN         SIGN      ZR             RT       LNG
    +-------------+----+---------+----+------------+------------+----+---------+----+-------------+

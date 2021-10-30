@@ -64,26 +64,60 @@ typedef struct{                     // trailer for all records (allows little/bi
 
 #define NULL_EOR {0, 0, 0}
 
+//      ZR        LNG         RT                                              RT        LNG         ZR
+//    +----+----------------+----+------------+---------+---------+---------+----+----------------+----+
+//    |0x00| 0x000000000006 |0x03| 'APPLSRF0' |   DESZ  |  SEGL   |   SIG2  |0x03| 0x000000000006 |0x00|
+//    +----+----------------+----+------------+---------+---------+---------+----+----------------+----+
+//    8 bits     48 bits    8 bits  8x8 bits    64 bits  64 bits    64 bits 8 bits     48 bits    8 bits
+// 
+//    LNG   length      : 6 64 bit elements
+//    ZR    zero byte   : used as endianness indicator
+//    RT    record type : 3 (Start Of Segment)
+//    SIGN  file type signature (APPL would be FsT2 for "RPN standard" files version 2)
+//    DESZ  directory entry size ( + size of address block if applicable ?)
+//    SIG2  0xDEADBEEFFEEBDAED (bi-endian signature)
+//    SEGL  length of segment in 64 bit units, including S O S and E O S 
+
 // the size of the following struct MUST be a MULTIPLE of 64 bits
 typedef struct{           // SOS (Start Of Segment) record
-  start_of_record head ;  // rt=3, zr=0, rl=4
+  start_of_record head ;  // rt=3, zr=0, rl=6
   unsigned char sig1[8] ; // RSF marker + application marker ('RSF0FsT2' for standard files 2020)
-  uint64_t direntry_size ;  // PROVISIONAL SIZE (will be reduced later)
+  uint64_t direntry_size ;  // size of directory entry
+  uint64_t segl ;         // segment length (in 64 bit units)
   uint64_t sig2 ;         // 0xDEADBEEFFEEBDAED (bi-endian signature)
-  end_of_record tail ;    // rt=3, zr=0, rl=5
+  end_of_record tail ;    // rt=3, zr=0, rl=6
 } start_of_segment ;
 
 //                        SOR                      sig1               direntry_size   sig2              EOR
 #define EMPTY_SOS {{RT_SOS ,RL_SOS, 0}, {'R','S','F','0','<','-','-','>'}, 0, 0xDEADBEEFFEEBDAED, {RT_SOS ,RL_SOS, 0}}
 
+//      ZR        LNG         RT                                                                          RT        LNG         ZR
+//    +----+----------------+----+----------+---------+---------+         +---------+---------+---------+----+----------------+----+
+//    |0x00| 0x000000000008 |0x03|   SIG1   |   DESZ  |   SEGL  |...GAP...|   DESZ  |  SEGL   |   SIG2  |0x03| 0x000000000008 |0x00|
+//    +----+----------------+----+----------+---------+---------+         +---------+---------+---------+----+----------------+----+
+//    8 bits     48 bits    8 bits 64 bits    64 bits   64 bits             64 bits  64 bits    64 bits 8 bits     48 bits    8 bits
+// 
+//    LNG   length      : 6 64 bit elements
+//    ZR    zero byte   : used as endianness indicator
+//    RT    record type : 3 (Start Of Segment)
+//    SIG1  0xBEBEFADAADAFEBEB (bi-endian signature)
+//    DESZ  directory entry size ( + size of address block if applicable ?)
+//    GAP   if file is sparse, unoccupied space so that the EOS end resides on an address block
+//          the segment size will then be a multiple of the address block
+//          in this case, 2 copies of the EOS will be found, overlapping GAP at both ends
+//    SIG2  0xDEADBEEFFEEBDAED (bi-endian signature)
+//    SEGL  length of segment in 64 bit units, including S O S and E O S 
+
 // the size of the following struct MUST be a MULTIPLE of 64 bits
 typedef struct{           // EOS (End Of Segment) record
-  start_of_record head ;  // rt=4, zr=0, rl=5
+  start_of_record head ;  // rt=4, zr=0, rl=8 + size of gap
   uint64_t sig1 ;         // 0xBEBEFADAADAFEBEB (bi-endian signature)
-  uint64_t direntry_size ;  // PROVISIONAL SIZE (will be reduced later)
+  uint64_t direntry_size ;  //  size of directory entry,  ( + size of address block if applicable ?)
+  uint64_t Segl ;         // segment length (in 64 bit units)
+  uint64_t desz ;         // size of directory entry, ( + size of address block if applicable ?)
   uint64_t segl ;         // segment length (in 64 bit units)
   uint64_t sig2 ;         // 0xCAFEFADEEDAFEFAC (bi-endian signature)
-  end_of_record tail ;    // rt=4, zr=0, rl=6
+  end_of_record tail ;    // rt=4, zr=0, rl=8 + size of gap
 } end_of_segment ;
 
 //                         SOR                 sig1    direntry_size         segl                          sig2                EOR

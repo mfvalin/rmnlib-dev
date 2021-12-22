@@ -11,7 +11,8 @@
 !  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 !  Lesser General Public License for more details.
 !
-! Author:   M.Valin , Recherche en Prevision Numerique, April 2021
+! Authors:   M.Valin   , Recherche en Prevision Numerique, 2021
+!            V.Magnoux , Recherche en Prevision Numerique, 2021
 !
 ! _the Cray Fortran compiler treats loc() as a type(C_PTR), other compilers as integer(C_INTPTR_T)
 #if defined(_CRAYFTN)
@@ -20,11 +21,11 @@
 #define WHAT_TYPE integer(C_INTPTR_T)
 #endif
 
-module data_serialize
+module jar_module
   use ISO_C_BINDING
   implicit none
 
-  public
+  private
 
   interface
     function libc_malloc(sz) result(p) BIND(C,name='malloc')
@@ -42,8 +43,9 @@ module data_serialize
 
   logical, save, private :: debug_mode = .false.
 
-  integer, parameter :: JAR_ELEMENT = C_INT
-  type, BIND(C) :: c_jar                         ! C interoperable version of jar
+  integer, parameter, public :: JAR_ELEMENT = C_INT64_T !< We want 64-bit elements in the jars
+
+  type, public, BIND(C) :: c_jar                         ! C interoperable version of jar
     private
     integer(JAR_ELEMENT) :: size = 0             ! capacity of jar
     integer(JAR_ELEMENT) :: top  = 0             ! last posision "written" (cannot write beyond size)
@@ -52,7 +54,7 @@ module data_serialize
     type(C_PTR)          :: p = C_NULL_PTR       ! address of actual data
   end type
 
-  type :: jar                                    ! same as c_jar, but with type bound procedures
+  type, public :: jar                                    ! same as c_jar, but with type bound procedures
     private
     integer(JAR_ELEMENT) :: size = 0             ! capacity of jar
     integer(JAR_ELEMENT) :: top  = 0             ! last posision "written" (cannot write beyond size)
@@ -68,6 +70,7 @@ module data_serialize
     procedure, PASS :: reset   => reset_jar      ! make jar empty, keep allocated space
     procedure, PASS :: data    => jar_pointer    ! get C pointer to actual jar data
     procedure, PASS :: array   => jar_contents   ! get Fortran pointer to actual jar data
+    procedure, PASS :: raw_array => jar_contents_full ! get Fortran pointer to entire jar data array
     procedure, PASS :: usable  => jar_size       ! maximum capacity of data jar
     procedure, PASS :: high    => jar_top        ! current number of elements inserted (written)
     procedure, PASS :: low     => jar_bot        ! current number of elements extracted (read)
@@ -97,13 +100,14 @@ module data_serialize
     integer, intent(IN), value :: data_size  ! number of elements in jar
     integer :: ok                            ! 0 if O.K., -1 if error
 
-    integer(C_SIZE_T) :: dsz
+    integer(C_SIZE_T)    :: dsz
+    integer(JAR_ELEMENT) :: dummy_jar_element
 
     ok = -1
     if(C_ASSOCIATED(j % p)) return          ! error, there is already an allocated data container
 
     dsz = data_size
-    j % p = libc_malloc( dsz * 4)              ! size in bytes
+    j % p = libc_malloc( dsz * storage_size(dummy_jar_element) / 8) ! size in bytes
     if(.not. C_ASSOCIATED(j % p)) return    ! malloc failed
     ok = 0
 
@@ -118,7 +122,7 @@ module data_serialize
     implicit none
     class(jar), intent(INOUT) :: j          ! the data jar
     integer(C_INT), intent(IN), value :: arraysize  ! number of elements in arrray
-    integer(C_INT), dimension(arraysize), intent(IN) :: array    ! DO NOT LIE
+    integer(JAR_ELEMENT), dimension(arraysize), intent(IN) :: array    ! DO NOT LIE
     integer :: ok                            ! 0 if O.K., -1 if error
 
     integer(C_INTPTR_T) :: temp
@@ -163,7 +167,7 @@ module data_serialize
   subroutine print_jar(j, max_elem)         ! print jar info
     implicit none
     class(jar), intent(IN) :: j             ! the data jar
-    integer, intent(IN), value :: max_elem  ! max data elements to print
+    integer(JAR_ELEMENT), intent(IN), value :: max_elem  ! max data elements to print
 
     integer, dimension(:), pointer :: data
 
@@ -172,10 +176,10 @@ module data_serialize
 1   format(3I6,(20Z9.8))
   end subroutine print_jar
 
-  function jar_avail(j) result(sz)          ! get amount of available data in jar (32 bit units)
+  function jar_avail(j) result(sz)          ! get amount of available data in jar (JAR_ELEMENT units)
     implicit none
     class(jar), intent(IN) :: j             ! the data jar
-    integer :: sz                           ! available data in jar (32 bit units)
+    integer(JAR_ELEMENT) :: sz              ! available data in jar (JAR_ELEMENT units)
 
     sz = -1
     if(.not. C_ASSOCIATED(j % p)) return
@@ -183,10 +187,10 @@ module data_serialize
 
   end function jar_avail
 
-  function jar_top(j) result(sz)            ! get amount of data in jar (32 bit units)
+  function jar_top(j) result(sz)            ! get amount of data in jar (JAR_ELEMENT units)
     implicit none
     class(jar), intent(IN) :: j             ! the data jar
-    integer :: sz                           ! amount of data inserted in jar (32 bit units)
+    integer(JAR_ELEMENT) :: sz              ! amount of data inserted in jar (JAR_ELEMENT units)
 
     sz = -1
     if(.not. C_ASSOCIATED(j % p)) return
@@ -194,10 +198,10 @@ module data_serialize
 
   end function jar_top
 
-  function jar_bot(j) result(sz)            ! get amount of data in jar (32 bit units)
+  function jar_bot(j) result(sz)            ! get amount of data in jar (JAR_ELEMENT units)
     implicit none
     class(jar), intent(IN) :: j             ! the data jar
-    integer :: sz                           ! amount of data inserted in jar (32 bit units)
+    integer(JAR_ELEMENT) :: sz              ! amount of data inserted in jar (JAR_ELEMENT units)
 
     sz = -1
     if(.not. C_ASSOCIATED(j % p)) return
@@ -205,10 +209,10 @@ module data_serialize
 
   end function jar_bot
 
-  function jar_size(j) result(sz)           ! get data jar capacity (32 bit units)
+  function jar_size(j) result(sz)           ! get data jar capacity (JAR_ELEMENT units)
     implicit none
     class(jar), intent(IN) :: j             ! the data jar
-    integer :: sz                           ! data jar capacity (32 bit units)
+    integer(JAR_ELEMENT) :: sz              ! data jar capacity (JAR_ELEMENT units)
 
     sz = -1
     if(.not. C_ASSOCIATED(j % p)) return
@@ -239,6 +243,17 @@ module data_serialize
     call C_F_POINTER(j % p, fp, [j % top])  ! Fortran pointer to array of j%size JAR_ELEMENTs
 
   end function jar_contents
+
+  function jar_contents_full(j) result(fp)
+    implicit none
+    class(jar), intent(IN) :: j
+    integer(JAR_ELEMENT), dimension(:), pointer :: fp
+
+    nullify(fp)
+    if (.not. C_ASSOCIATED(j % p)) return
+
+    call C_F_POINTER(j % p, fp, [j % size])
+  end function jar_contents_full
 
   subroutine final_jar(j)                    ! deallocate a jar's data if not already done at finalize (if jar owns it)
     implicit none
@@ -286,10 +301,10 @@ module data_serialize
     class(jar), intent(INOUT) :: j                          ! the data jar
 #include <IgnoreTypeKindRankPlus.hf>
     integer, intent(IN), value :: size                      ! size to insert = storage_size(item) * nb_of_items
-    integer, intent(IN), optional, value :: where           ! optional argument to force insertion point (1 = start of jar)
-    integer :: sz                                           ! position of last inserted element (-1 if error)
+    integer(JAR_ELEMENT), intent(IN), optional, value :: where           ! optional argument to force insertion point (1 = start of jar)
+    integer(JAR_ELEMENT) :: sz                                           ! position of last inserted element (-1 if error)
 
-    integer :: intsize, pos
+    integer(JAR_ELEMENT) :: intsize, pos
     type(C_PTR) :: temp
     integer(JAR_ELEMENT), dimension(:), pointer :: je, content
 
@@ -305,7 +320,7 @@ module data_serialize
     if(pos < 0) return                                      ! invalid insertion position
     if(pos > j%top) content(j%top+1:pos) = 0                ! zero fill skipped portion
 
-    intsize = size / storage_size(content(1))
+    intsize = (size + storage_size(content(1)) - 1) / storage_size(content(1))
     if(pos + intsize > j%size) return                       ! jar would overflow
 
 !     temp    = transfer(what,temp)                           ! address of data to insert
@@ -359,10 +374,10 @@ module data_serialize
     class(jar), intent(INOUT) :: j                          ! the data jar
 #include <IgnoreTypeKindRankPlus.hf>
     integer, intent(IN), value :: size                      ! size to insert = storage_size(item) * nb_of_items
-    integer, intent(IN), optional, value :: where           ! optional argument to force insertion point (1 = start of jar)
-    integer :: sz                                           ! position of last extracted element (-1 if error)
+    integer(JAR_ELEMENT), intent(IN), optional, value :: where           ! optional argument to force insertion point (1 = start of jar)
+    integer(JAR_ELEMENT) :: sz                                           ! position of last extracted element (-1 if error)
 
-    integer :: intsize, pos
+    integer(JAR_ELEMENT) :: intsize, pos
     type(C_PTR) :: temp
     integer(JAR_ELEMENT), dimension(:), pointer :: je, content
 
@@ -423,4 +438,4 @@ module data_serialize
 ! 
 !   end function get_from_jar
 
-end module
+end module jar_module

@@ -31,8 +31,13 @@ static struct{             // empty file template
   end_of_segment eos ;     // end of segment
 } zero_file = { EMPTY_SOS , EMPTY_DIR_RECORD , EMPTY_EOS };
 
-// eos with zero segment length
+// eos with zero file data length
 static end_of_segment zero_eos = EMPTY_EOS ;
+// split eos with zero file data length
+static end_of_segment_split zero_eos_split = { EMPTY_EOS_LO , EMPTY_EOS_HI } ;
+// then 2 parts of the eos with zero file data length
+static end_of_segment_lo zero_eos_lo = EMPTY_EOS_LO ;
+static end_of_segment_hi zero_eos_hi = EMPTY_EOS_HI ;
 
 // empty directory
 static struct{
@@ -304,16 +309,13 @@ static void dump_directory(RSF_file *fp)
 // write directory to storage device
 static int32_t write_directory(RSF_file *fp)
 {
-//   uint8_t *dir_record ;
-//   start_of_record *sorp ;
-//   dir_body *dir ;
-//   uint64_t dir_rec_size = dir_size + sizeof(start_of_record) + sizeof(end_of_record) ;
-//   uint8_t *sorpi, *diri, *eorpi ;
   disk_dir_entry *entry ;
   char *e ;
   end_of_record *eorp ;
-  uint64_t dir_entry_size = fp->direntry_size * sizeof(uint32_t) + sizeof(disk_dir_entry) ;
-  size_t dir_rec_size = sizeof(start_of_record) + sizeof(disk_directory) + dir_entry_size * fp->direntry_used + sizeof(end_of_record) ;
+//   uint64_t dir_entry_size = fp->direntry_size * sizeof(uint32_t) + sizeof(disk_dir_entry) ;
+  uint64_t dir_entry_size = DirectoryEntrySize(*fp) ;
+//   size_t dir_rec_size = sizeof(disk_directory) + dir_entry_size * fp->direntry_used + sizeof(end_of_record) ;
+  size_t dir_rec_size = DirectoryRecordSize(*fp) ;
   disk_directory *ddir ;
   char *p = NULL ;
   off_t offset = 0 ;
@@ -322,9 +324,9 @@ static int32_t write_directory(RSF_file *fp)
   int i, status ;
 
   status = -1 ;
-  if( (p = malloc(dir_rec_size )) == NULL) return status ;  // allocation failed
+  if( ( p = malloc(dir_rec_size) ) == NULL) return status ;  // allocation failed
   ddir = (disk_directory *) p ;
-  eorp = (end_of_record *) p + dir_rec_size - sizeof(end_of_record) ;
+  eorp = (end_of_record *) (p + dir_rec_size - sizeof(end_of_record)) ;  // point to eor at end of record
 
   ddir->sor.rt = RT_DIR ;                           // start of record
   ddir->sor.rl = dir_rec_size / sizeof(uint64_t) ;
@@ -352,16 +354,6 @@ static int32_t write_directory(RSF_file *fp)
 
   free(p) ;
   return status ;
-
-//   dir_record = (uint8_t *) malloc(dir_rec_size) ;  // allocate the directory record
-//   if(dir_record == NULL) return -1 ;                                                                // malloc failed
-//   sorp = (start_of_record *) dir_record ;                                     sorpi = (uint8_t *) sorp ;
-//   dir  = (dir_body *) (dir_record + sizeof(start_of_record)) ;                  diri  = (uint8_t *) dir ;
-//   eorp = (end_of_record *) (dir_record + sizeof(start_of_record) + dir_size) ;  eorpi = (uint8_t *) eorp ;
-// fprintf(stderr,"DEBUG: sor %p, body %p, eor %p\n",sorp, dir, eorp) ;
-// fprintf(stderr,"DEBUG: dir_size = %ld, dir_rec_size = %ld\n", dir_size, dir_rec_size) ;
-// fprintf(stderr,"DEBUG: sorp - dir_record %ld, dir - sorp %ld, eorp  - dir %ld\n", sorpi-dir_record, diri - sorpi, eorpi - diri) ;
-//   free(dir_record) ;  // deallocate temporaty space
 }
 
 // =================================  internal rsf file functions =================================
@@ -522,7 +514,8 @@ write_directory(fp) ;
 write(fp->fd, &empty_dir, sizeof(empty_dir)) ;
     // WRITE End Of Segment marker
     offset = lseek(fp->fd, 0, SEEK_END) ;  // position at end
-    zero_eos.segl = (offset / sizeof(uint64_t)) + RL_EOS ;
+    zero_eos.seglo = (offset / sizeof(uint64_t)) + RL_EOS ;
+    zero_eos.seghi = zero_eos.seglo ;
     write(fp->fd, &zero_eos, sizeof(zero_eos)) ;
   }
   if(fp->fd >= 0) close (fp->fd) ;

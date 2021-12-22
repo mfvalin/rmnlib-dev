@@ -83,17 +83,17 @@ typedef struct{           // SOS (Start Of Segment) record
   start_of_record head ;  // rt=3, zr=0, rl=6
   unsigned char sig1[8] ; // RSF marker + application marker ('RSF0FsT2' for standard files 2020)
   uint64_t direntry_size ;  // size of directory entry
-  uint64_t segl ;         // segment length (in 64 bit units)
+  int64_t  segl ;         // segment length (in 64 bit units)
   uint64_t sig2 ;         // 0xDEADBEEFFEEBDAED (bi-endian signature)
   end_of_record tail ;    // rt=3, zr=0, rl=6
 } start_of_segment ;
 
 //                        SOR                      sig1               direntry_size   sig2              EOR
-#define EMPTY_SOS {{RT_SOS ,RL_SOS, 0}, {'R','S','F','0','<','-','-','>'}, 0, 0xDEADBEEFFEEBDAED, {RT_SOS ,RL_SOS, 0}}
+#define EMPTY_SOS {{RT_SOS ,RL_SOS, 0}, {'R','S','F','0','<','-','-','>'}, 0, 0, 0xDEADBEEFFEEBDAED, {RT_SOS ,RL_SOS, 0}}
 
 //      ZR        LNG         RT                                                                          RT        LNG         ZR
 //    +----+----------------+----+----------+---------+---------+         +---------+---------+---------+----+----------------+----+
-//    |0x00| 0x000000000008 |0x03|   SIG1   |   DESZ  |   SEGL  |...GAP...|   DESZ  |  SEGL   |   SIG2  |0x03| 0x000000000008 |0x00|
+//    |0x00| 0x000000000008 |0x03|   SIG1   |   DESZ  |  SEGLO  |...GAP...|   DESZ  | SEGHI   |   SIG2  |0x03| 0x000000000008 |0x00|
 //    +----+----------------+----+----------+---------+---------+         +---------+---------+---------+----+----------------+----+
 //    8 bits     48 bits    8 bits 64 bits    64 bits   64 bits             64 bits  64 bits    64 bits 8 bits     48 bits    8 bits
 // 
@@ -106,22 +106,45 @@ typedef struct{           // SOS (Start Of Segment) record
 //          the segment size will then be a multiple of the address block
 //          in this case, 2 copies of the EOS will be found, overlapping GAP at both ends
 //    SIG2  0xDEADBEEFFEEBDAED (bi-endian signature)
-//    SEGL  length of segment in 64 bit units, including S O S and E O S 
+//    SEGLO length of segment in 64 bit units, including S O S and E O S 
+//    SEGHI length of segment in 64 bit units, including S O S and E O S 
 
 // the size of the following struct MUST be a MULTIPLE of 64 bits
 typedef struct{           // EOS (End Of Segment) record
   start_of_record head ;  // rt=4, zr=0, rl=8 + size of gap
   uint64_t sig1 ;         // 0xBEBEFADAADAFEBEB (bi-endian signature)
   uint64_t direntry_size ;  //  size of directory entry,  ( + size of address block if applicable ?)
-  uint64_t Segl ;         // segment length (in 64 bit units)
-  uint64_t desz ;         // size of directory entry, ( + size of address block if applicable ?)
-  uint64_t segl ;         // segment length (in 64 bit units)
+  int64_t  seglo ;        // segment length (in 64 bit units)
+  uint64_t deszhi ;       // size of directory entry, ( + size of address block if applicable ?)
+  int64_t  seghi ;        // segment length (in 64 bit units)
   uint64_t sig2 ;         // 0xCAFEFADEEDAFEFAC (bi-endian signature)
   end_of_record tail ;    // rt=4, zr=0, rl=8 + size of gap
 } end_of_segment ;
 
-//                         SOR                 sig1    direntry_size         segl                          sig2                EOR
-#define EMPTY_EOS {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB, 0, (sizeof(zero_file)/sizeof(uint64_t)), 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}}
+typedef struct{           // EOS (End Of Segment) record (low part)
+  start_of_record head ;  // rt=4, zr=0, rl=8 + size of gap
+  uint64_t sig1 ;         // 0xBEBEFADAADAFEBEB (bi-endian signature)
+  uint64_t direntry_size ;  //  size of directory entry,  ( + size of address block if applicable ?)
+  int64_t  seglo ;        // segment length (in 64 bit units)
+} end_of_segment_lo ;
+
+typedef struct{           // EOS (End Of Segment) record (high part)
+  uint64_t deszhi ;       // size of directory entry, ( + size of address block if applicable ?)
+  int64_t  seghi ;        // segment length (in 64 bit units)
+  uint64_t sig2 ;         // 0xCAFEFADEEDAFEFAC (bi-endian signature)
+  end_of_record tail ;    // rt=4, zr=0, rl=8 + size of gap
+} end_of_segment_hi ;
+
+typedef struct{
+  end_of_segment_lo lo ;
+  end_of_segment_hi hi ;
+} end_of_segment_split ;
+
+#define ZERO_FILE (sizeof(zero_file)/sizeof(uint64_t))
+//                         SOR                 sig1    direntry_size   segl     desz    segl          sig2                EOR
+#define EMPTY_EOS {{RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB,  0,     ZERO_FILE,   0, ZERO_FILE, 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0}}
+#define EMPTY_EOS_LO { {RT_EOS, RL_EOS, 0}, 0xBEBEFADAADAFEBEB,  0, ZERO_FILE }
+#define EMPTY_EOS_HI { 0, ZERO_FILE, 0xCAFEFADEEDAFEFAC, {RT_EOS, RL_EOS, 0} }
 
 // this reflects the format on storage media (disk)
 // start_of_record | dir_body | end_of_record
@@ -165,11 +188,12 @@ typedef struct{
 // the directory will normally be followed on the storage device by an End Of Segment record
 //
 typedef struct{
-  start_of_record sor ;
+  start_of_record sor ;             // start of record
   uint32_t entries_nused ;          // number of directory entries used
   uint32_t direntry_size ;          // size of a directory entry (in 32 bit units)
-  uint32_t entry[] ;                // entry[] cannot be used directly
-} disk_directory ;                  // doubly 
+  disk_dir_entry entry[] ;          // open array of directory entries
+//end_of_record eor                 // end of record
+} disk_directory ;
 
 typedef struct DIR_PAGE DIR_PAGE ;
 
@@ -191,8 +215,11 @@ typedef struct RSF_file RSF_file;
 struct RSF_file{                 // internal (in memory) structure for access to Random Segmented Files
   uint32_t version ;
   int32_t  fd ;                  // OS file descriptor (-1 if invalid)
+  char *name ;                   // file name (absolute pathname)
   int32_t  file_slot ;           // slot number of file (-1 if invalid)
   int32_t  cur_rec ;             // current record index in curpage (-1 if invalid)
+  uint64_t seg_base ;            // base address in file of the segment
+  int64_t seg_max ;              // maximum address allowable in segment (-1 means no limit) (-segl if sparse file)
   uint32_t *mask ;               // mask used for metadata matches (NULL if not used)
   RSF_match_fn *match ;          // pointer to metadata matching function
   DIR_PAGE **pagetable ;         // directory page table (pointers to directory pages for this file)
@@ -203,8 +230,8 @@ struct RSF_file{                 // internal (in memory) structure for access to
   off_t file_pos ;               // current file position
   off_t file_siz ;               // file size (should NEVER SHRINK)
   off_t next_write ;             // position for next write
-  uint32_t head_type ;           // 0 : invalid, 1: read, 2 : written
-  uint32_t tail_type ;           // 0 : invalid, 1: read, 2 : written
+  uint32_t head_type ;           // 0 : invalid, 1: read, 2 : written (reflects last operation performed on file)
+  uint32_t tail_type ;           // 0 : invalid, 1: read, 2 : written (reflects last operation performed on file)
   start_of_record  last_head ;   // last record header written/read (validated by head_type)
   end_of_record    last_tail ;   // last record trailer written/read (validated by tail_type)
   uint32_t mode ;                // file mode (RO/RW/AP)
@@ -218,9 +245,21 @@ struct RSF_file{                 // internal (in memory) structure for access to
   uint32_t buf_size ;            // size of dynamic buffer (see RSF_file_flex)
 } ;
 
-#define NULL_RSF_file {RSF_VERSION, -1, -1, -1, NULL, &rsf_default_match, NULL, NULL, -1, -1, -1, 0, 0, 0, 0, 0, NULL_SOR, NULL_EOR, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+#define NULL_RSF_file {RSF_VERSION, -1, NULL, -1, -1, 0, 0, NULL, &rsf_default_match, NULL, NULL, -1, -1, -1, 0, 0, 0, 0, 0, NULL_SOR, NULL_EOR, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 
 struct RSF_file_flex{            // RSF_file with flexible array at end
   RSF_file f ;
   uint32_t buf[] ;               // buffer used to build records
 } ;
+
+// size of a disk directory entry
+static inline uint64_t DirectoryEntrySize(RSF_file f){
+  return sizeof(disk_dir_entry) + sizeof(uint32_t) * f.direntry_size  ;
+}
+
+// size in bytes of a directory record
+static inline uint64_t DirectoryRecordSize(RSF_file f){
+  return sizeof(disk_directory) + 
+         f.direntry_used * DirectoryEntrySize(f) + 
+         sizeof(end_of_record) ;
+}

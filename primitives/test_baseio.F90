@@ -21,6 +21,9 @@ program test
   type(C_PTR) :: dlhandle
   type(C_FUNPTR)       :: demo1,  demo1b,  demo2,  demo2b
 
+! NOTE: BIND(C) necessity discovered with Intel oneapi compiler for functions with value arguments
+! test from shared library failed if BIND(C) not present in proc1 and proc2
+! no problem noticed with gfortran / pgfortran / flang(pgi derived variety)
   interface
     function proc1b(a) result(r) BIND(C)
       integer, intent(IN) :: a

@@ -587,7 +587,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
      ier = c_waopen2(liun);
      FGFDT[i].attr.wa = 0;   // reset flag, it will be set by later call to waopen (flag set means file already opened by waopen)
   }
-    
+
   if (ier == 0) FGFDT[i].open_flag = 1;
   if (ier < 0) junk=c_fclos(liun);
   return(ier<0?-1:0);
@@ -600,10 +600,10 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
 ***functions c_fclos and fclos
 *
 *OBJECT: Close file associated with unit iun.
-*        Returns zero 
+*        Returns zero if no error
 *        and non-zero otherwise.
 *
-*ARGUMENTS: in iun   unit number
+*ARGUMENTS: in iun  Fortran style unit number
 *
 *RETURNS: zero if the connection is successful, non-zero 
 *         otherwise
@@ -614,15 +614,15 @@ int c_fclos(int iun)
    int i,ier;
    int32_t iun77;
 
-   if ((iun == 6) && (stdoutflag)) return(0);
-   if ((iun == 5) && (stdinflag)) return(0);
+   if ((iun == 6) && (stdoutflag)) return(0);  // special treatment for units 5 and 6
+   if ((iun == 5) && (stdinflag))  return(0);
 
    if ((i=find_file_entry("c_fclos",iun)) < 0) return(i);
    iun77 = iun;
    ier=0;
    if (FGFDT[i].open_flag){
       if (FGFDT[i].attr.ftn)
-         ier = (*f90_clos)(&iun77);   // need to get this fortran runtime library done via a callback
+         ier = (*f90_clos)(&iun77);   // perform this fortran runtime library call using a callback
       else
          ier = close(FGFDT[i].fd);
       }
@@ -1254,105 +1254,100 @@ static int qqcopen(int indf)
   int atoi();
   LLSK dim;
   char *errmsg="";
-  
-  /*    beginning of INITIALIZATION section    */
-if (! init) {  
-  for (ind = 0; ind < MAXWAFILES; ind++) {
-    wafile[ind].file_desc = -1;
-    wafile[ind].offset = 0;
-  }
-  init = 1;
-}
-/*    end of INITIALIZATION section    */
 
-FGFDT[indf].fd = -1;
-ind = 0;
-while ((wafile[ind].file_desc != -1) && (ind < MAXWAFILES))
-ind++;
-if (ind == MAXWAFILES) {
-  fprintf(stderr,"qqcopen error: too many open files\n");
-  return(-1);
-}
-
-fd = -1 ;
-if (FGFDT[indf].subname) {    // CMCARC type file
-  if (debug_mode > 4) {
-    fprintf(stderr,"Debug opening subfile %s from file %s\n",
-            FGFDT[indf].subname,FGFDT[indf].file_name);
-  }
-  FGFDT[indf].attr.read_only = 1;
-  mode = O_RDONLY;
-  if ((fd = open64(FGFDT[indf].file_name,mode)) == -1) {
-    fprintf(stderr,"qqcopen error: cannot open file %s\n",FGFDT[indf].file_name);
-    return(-1);
-  }
-  wafile[ind].file_desc = fd;
-  FGFDT[indf].fd = fd;
-  if ((wafile[ind].offset = filepos(indf)) <= 0) {
-    fprintf(stderr,"qqcopen error: subfile %s not found in %s\n",
-            FGFDT[indf].subname,FGFDT[indf].file_name);
-    return(-1);
-  }
-  FGFDT[indf].open_flag = 1;
-  if (debug_mode > 4) {
-    fprintf(stderr,"Debug subfile found at position %ld\n",wafile[ind].offset);
-  }
-}
-
-else {                        // not a CMCARC type file
-  if (access(FGFDT[indf].file_name, F_OK) == -1)
-    {
-      if (errno == ENOENT)     /* nouveau fichier, creation */
-        {
-          fd = open64(FGFDT[indf].file_name, O_RDWR | O_CREAT,
-                    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-          FGFDT[indf].attr.read_only = 0;
-          errmsg="cannot create file";
-        }
+  //    beginning of INITIALIZATION section ( performed only ONCE )
+  if (! init) {
+    for (ind = 0; ind < MAXWAFILES; ind++) {
+      wafile[ind].file_desc = -1;
+      wafile[ind].offset = 0;
     }
-  else
-    if (! FGFDT[indf].attr.read_only)      /* tentative d'ouverture en mode R/W */
-      {
-        mode = O_RDWR;
-        fd = open64(FGFDT[indf].file_name, mode);
-        if (fd == -1) {
-          if (!FGFDT[indf].attr.write_mode)
-            {
-              mode = O_RDONLY;
-              FGFDT[indf].attr.read_only = 1;
-              fd = open64(FGFDT[indf].file_name, mode);
-              errmsg="cannot open file";
-            }
-          else                  /* ouverture demande en mode R/W */
-            errmsg="cannot open in write mode";
-        }
-      }
-    else if (FGFDT[indf].attr.read_only)  /* ouverture en mode R/O */
-      {
-        mode = O_RDONLY;
-        fd = open64(FGFDT[indf].file_name, mode);
-        errmsg="cannot open file";
-      }
-  if (fd == -1)
-    {
-      fprintf(stderr, "ERROR (qqcopen) : %s filename=(%s) !\n",errmsg,FGFDT[indf].file_name);
+    init = 1;
+  }
+  //    end of INITIALIZATION section
+
+  FGFDT[indf].fd = -1;
+  ind = 0;
+  while ((wafile[ind].file_desc != -1) && (ind < MAXWAFILES))
+  ind++;
+  if (ind == MAXWAFILES) {
+    fprintf(stderr,"qqcopen error: too many open files\n");
+    return(-1);
+  }
+
+  fd = -1 ;
+  if (FGFDT[indf].subname) {    // CMCARC type file
+    if (debug_mode > 4) {
+      fprintf(stderr,"Debug opening subfile %s from file %s\n",
+              FGFDT[indf].subname,FGFDT[indf].file_name);
+    }
+    FGFDT[indf].attr.read_only = 1;
+    mode = O_RDONLY;
+    if ((fd = open64(FGFDT[indf].file_name,mode)) == -1) {
+      fprintf(stderr,"qqcopen error: cannot open file %s\n",FGFDT[indf].file_name);
       return(-1);
     }
-  wafile[ind].file_desc = fd;
-  FGFDT[indf].fd = fd;
-  FGFDT[indf].open_flag = 1;
-}
-dim = 0;
-dim = LSEEK(fd, dim, SEEK_END);
-FGFDT[indf].file_size = dim / sizeof(int32_t);
-FGFDT[indf].eff_file_size = dim / sizeof(int32_t);
-dim = 0;
-dim = LSEEK(fd, dim, SEEK_SET);
-if (subfile_length > 0) 
-FGFDT[indf].eff_file_size = subfile_length;
-subfile_length = 0;
+    wafile[ind].file_desc = fd;
+    FGFDT[indf].fd = fd;
+    if ((wafile[ind].offset = filepos(indf)) <= 0) {
+      fprintf(stderr,"qqcopen error: subfile %s not found in %s\n",
+              FGFDT[indf].subname,FGFDT[indf].file_name);
+      return(-1);
+    }
+    FGFDT[indf].open_flag = 1;
+    if (debug_mode > 4) {
+      fprintf(stderr,"Debug subfile found at position %ld\n",wafile[ind].offset);
+    }
 
-return(fd);
+  }else {                        // not a CMCARC type file
+    if (access(FGFDT[indf].file_name, F_OK) == -1) {
+        if (errno == ENOENT) {   /* nouveau fichier, creation */
+            fd = open64(FGFDT[indf].file_name, O_RDWR | O_CREAT,
+                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+            FGFDT[indf].attr.read_only = 0;
+            errmsg="cannot create file";
+          }
+
+    }else{
+      if (! FGFDT[indf].attr.read_only) {      /* tentative d'ouverture en mode R/W */
+          mode = O_RDWR;
+          fd = open64(FGFDT[indf].file_name, mode);
+          if (fd == -1) {
+            if (!FGFDT[indf].attr.write_mode)  {
+                mode = O_RDONLY;
+                FGFDT[indf].attr.read_only = 1;
+                fd = open64(FGFDT[indf].file_name, mode);
+                errmsg="cannot open file";
+            }else{                /* ouverture demande en mode R/W */
+              errmsg="cannot open in write mode";
+            }
+          }
+      }else if (FGFDT[indf].attr.read_only) {  /* ouverture en mode R/O */
+          mode = O_RDONLY;
+          fd = open64(FGFDT[indf].file_name, mode);
+          errmsg="cannot open file";
+      }
+    }
+
+    if (fd == -1)  {
+        fprintf(stderr, "ERROR (qqcopen) : %s filename=(%s) !\n",errmsg,FGFDT[indf].file_name);
+        return(-1);
+      }
+    wafile[ind].file_desc = fd;
+    FGFDT[indf].fd = fd;
+    FGFDT[indf].open_flag = 1;
+  }
+
+  dim = 0;
+  dim = LSEEK(fd, dim, SEEK_END);
+  FGFDT[indf].file_size = dim / sizeof(int32_t);
+  FGFDT[indf].eff_file_size = dim / sizeof(int32_t);
+  dim = 0;
+  dim = LSEEK(fd, dim, SEEK_SET);
+  if (subfile_length > 0) 
+  FGFDT[indf].eff_file_size = subfile_length;
+  subfile_length = 0;
+
+  return(fd);
 }
 
 

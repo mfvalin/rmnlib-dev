@@ -19,19 +19,34 @@ program test
   end interface
   external :: message_at_exit
   type(C_PTR) :: dlhandle
-  type(C_FUNPTR)       :: demo1,  demo2
+  type(C_FUNPTR)       :: demo1,  demo1b,  demo2,  demo2b
 
   interface
-    integer function proc1(a)
+    function proc1b(a) result(r) BIND(C)
+      integer, intent(IN) :: a
+      integer :: r
+    end function proc1b
+    function proc1(a) result(r) BIND(C)
       integer, intent(IN), value :: a
+      integer :: r
     end function proc1
-    real function proc2(a, b)
+    function proc2b(a, b) result(r) BIND(C)
+      integer, intent(IN) :: a
+      real, intent(IN) :: b
+      real :: r
+    end function proc2b
+    function proc2(a, b) result(r) BIND(C)
       integer, intent(IN), value :: a
       real, intent(IN), value :: b
+      real :: r
     end function proc2
   end interface
-  procedure(proc1), pointer :: fdemo1
+  procedure(proc1b), pointer :: fdemo1b
+  procedure(proc1) :: fproc1
+  procedure(proc1), pointer :: fdemo1, pproc1
+  procedure(proc2b), pointer :: fdemo2b
   procedure(proc2), pointer :: fdemo2
+
   integer :: f1
   real :: f2
   integer, external :: test_shm
@@ -313,23 +328,65 @@ program test
   write(6,*)'PASSED'
   call flush(6)
 
+  write(6,*)'========== testing function pointers  =========='
+  f1 = fproc1(1234)
+  write(6,*)'fproc1(1234) = ',f1
+  fdemo1 => fproc1
+  f1 = fdemo1(1234)
+  write(6,*)'fdemo1(1234) = ',f1
+  demo1 = C_FUNLOC(fproc1)
+  call C_F_PROCPOINTER(demo1,fdemo1)
+  f1 = fdemo1(1234)
+  if(f1 == 1234) then
+    write(6,*)'fdemo1(1234) == ',f1
+  else
+    write(6,*)'fdemo1(1234) <> ',f1
+  endif
+
   write(6,*)'========== testing interface to shared library  =========='
   dlhandle = c_dlopen(Cstr('./libdemo.so'), RTLD_LAZY)
   if(C_ASSOCIATED(dlhandle)) then
+    demo1b = c_dlsym(dlhandle, Cstr('Demo1b'))
+    if(C_ASSOCIATED(demo1b)) then
+      call C_F_PROCPOINTER(demo1b,fdemo1b)
+      f1 = fdemo1b(1234)
+      if(f1 .ne. 1234) goto 777
+    else
+      write(6,*)'entry Demo1b not found'
+      goto 777
+    endif
     demo1 = c_dlsym(dlhandle, Cstr('Demo1'))
     if(C_ASSOCIATED(demo1)) then
       call C_F_PROCPOINTER(demo1,fdemo1)
       f1 = fdemo1(1234)
-      if(f1 .ne. 1234) goto 777
+      if(f1 .ne. 1234) then
+        write(6,*)'entry Demo1 execution error, f1 .ne. 1234'
+!         goto 777
+      endif
     else
       write(6,*)'entry Demo1 not found'
+      goto 777
+    endif
+    demo2b = c_dlsym(dlhandle, Cstr('Demo2b'))
+    if(C_ASSOCIATED(demo2b)) then
+      call C_F_PROCPOINTER(demo2b,fdemo2b)
+      f2 = fdemo2b(5678, 12.23)
+      if(f2 .ne. 12.23+5678) then
+        write(6,*)'entry Demo2b execution error'
+!         goto 777
+      endif
+    else
+      write(6,*)'entry Demo2b not found'
       goto 777
     endif
     demo2 = c_dlsym(dlhandle, Cstr('Demo2'))
     if(C_ASSOCIATED(demo2)) then
       call C_F_PROCPOINTER(demo2,fdemo2)
       f2 = fdemo2(5678, 12.23)
-      if(f2 .ne. 12.23+5678) goto 777
+      if(f2 .ne. 12.23+5678) then
+        write(6,*)'entry Demo2 execution error, f2 .ne. 12.23+5678'
+!         goto 777
+      endif
     else
       write(6,*)'entry Demo2 not found'
       goto 777
@@ -399,3 +456,10 @@ integer function test_shm()
   test_shm = c_shmdt(memadr)
   return
 end function test_shm
+
+function fproc1(a) result(r) BIND(C)
+  integer, intent(IN), value :: a
+  integer :: r
+  print *,'fproc1 : a =',a
+  r = a
+end function fproc1

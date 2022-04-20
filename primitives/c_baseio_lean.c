@@ -19,10 +19,12 @@
 
 
 // NOTE : D77MULT is deprecated (determined by the Fortran routine that does the open)
+#if 0
 #if ! defined(NO_RPN_MACROS)
 #include <rpnmacros.h>
 #else
 #define D77MULT 4
+#endif
 #endif
 
 #define swap_word_endianness(mot) { register uint32_t tmp =(uint32_t)mot; \

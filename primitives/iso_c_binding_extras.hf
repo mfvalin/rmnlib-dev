@@ -80,7 +80,8 @@ integer, parameter :: RTLD_LOCAL = 0
   integer, parameter :: STDOUT_FILENO = 1
   integer, parameter :: STDERR_FILENO = 2
 
-! some compilers have problems returning this user type as a value. in those case type(C_FILEPTR) could be type(C_PTR)
+! some compilers may have problems returning this user type as a value. in that case type(C_FILEPTR) could be type(C_PTR)
+! using #define C_FILEPTR C_PTR and omitting the type definition
 #if ! defined(_CRAYFTN) && ( defined(__GFORTRAN__) || defined(__INTEL_COMPILER) || defined(__PGI) || defined(__FLANG) )
 #endif
 type, BIND(C) :: C_FILEPTR   ! for FILE STREAM IO calls
@@ -146,6 +147,35 @@ interface c_nanosleep   !  sleep in nanoseconds
     type(C_PTR), intent(IN), value :: rem
     integer(C_INT) :: ok
   end function c_nanosleep2
+end interface
+
+interface c_strnlen
+  function f_c_strnlen(str, maxlen) result(strlen) bind(C, name='strnlen')
+    import :: C_CHAR, C_SIZE_T
+    implicit none
+    character(C_CHAR), dimension(*), intent(IN) :: str
+    integer(C_SIZE_T), intent(IN) :: maxlen
+    integer(C_SIZE_T) :: strlen
+  end function f_c_strnlen
+  function c_c_strnlen(p, maxlen) result(length) bind(C,name='strnlen')
+    import C_PTR, C_SIZE_T
+    type(C_PTR), intent(IN), value :: p
+    integer(C_SIZE_T), intent(IN), value :: maxlen
+    integer(C_SIZE_T) :: length
+  end function c_c_strnlen
+end interface
+
+interface c_strlen
+  function f_c_strlen(str) result(length) bind(C,name='strlen')
+    import C_CHAR, C_SIZE_T
+    character(C_CHAR), dimension(*), intent(IN) :: str
+    integer(C_SIZE_T) :: length
+  end function f_c_strlen
+  function c_c_strlen(str) result(length) bind(C,name='strlen')
+    import C_PTR, C_SIZE_T
+    type(C_PTR), intent(IN), value :: str
+    integer(C_SIZE_T) :: length
+  end function c_c_strlen
 end interface
 
 interface
@@ -361,17 +391,12 @@ interface
     type(C_PTR) :: str
   end function c_getwd
 
-  function c_strlen(str) result(length) bind(C,name='strlen')
-    import C_CHAR, C_SIZE_T
-    character(C_CHAR), dimension(*), intent(IN) :: str
-    integer(C_SIZE_T) :: length
-  end function c_strlen
-
   function c_malloc(sz) result(p) bind(C,name='malloc')
     import :: C_PTR, C_SIZE_T
     integer(C_SIZE_T), intent(IN), value :: sz
     type(C_PTR) :: p
   end function c_malloc
+
   subroutine c_free(what) bind(C,name='free')
     import :: C_PTR
     type(C_PTR), intent(IN), value :: what

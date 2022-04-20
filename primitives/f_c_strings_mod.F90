@@ -16,7 +16,7 @@
 module f_c_strings_mod
   use ISO_C_BINDING
 
-  private :: c_strnlen
+  private :: c_strnlen, c_strlen
   public  :: memset
   interface
     function c_strnlen(str, maxlen) result(strlen) bind(C, name='strnlen')

@@ -12,6 +12,8 @@ program test
   integer, dimension(100) :: darray
   character(len=128) :: str1, str2
   character(len=16) :: s1, s2, s3
+  character(C_CHAR), dimension(16), target :: s0
+  character(len=:), allocatable :: errmsg
   namelist /namelist_s/ s1, s2, s3
   interface
     subroutine test_c_fnom() bind(C,name='TEST_c_fnom')
@@ -44,8 +46,14 @@ program test
       real :: r
     end function proc2
   end interface
+  interface
+    function fproc1(a) result(r) BIND(C)
+      integer, intent(IN), value :: a
+      integer :: r
+    end function fproc1
+  end interface
   procedure(proc1b), pointer :: fdemo1b
-  procedure(proc1) :: fproc1
+!   procedure(proc1) :: fproc1  ! not O.K. with some compilers, function is mistaken for a subroutine
   procedure(proc1), pointer :: fdemo1, pproc1
   procedure(proc2b), pointer :: fdemo2b
   procedure(proc2), pointer :: fdemo2
@@ -53,6 +61,8 @@ program test
   integer :: f1
   real :: f2
   integer, external :: test_shm
+
+  errmsg = ""
 !
 ! using macro Cstr() to transform a Fortran string into a C null terminated string
 !
@@ -62,6 +72,14 @@ program test
   do i=1,size(array0)
     array0(i) = i
   enddo
+  s0 = achar(0)
+  do i=1,len_trim(s1)
+    s0(i) = s1(i:i)
+  enddo
+  write(6,*)'========== some basic strings tests =========='
+  write(6,*)'c_strlen(s0) = ',c_strlen(s0)
+  write(6,*)'c_c_strlen(C_LOC(s0(1))) = ',c_c_strlen(C_LOC(s0(1)))
+  write(6,*)'f_c_strlen(Cstr(trim(s1))) = ',f_c_strlen(Cstr(trim(s1)))
   write(6,*)'========== basic IO test, c_baseio + f_baseio =========='
   call test_c_fnom()
   if(c_existe(Cstr('C_file'))  == 0) goto 777
@@ -258,16 +276,18 @@ program test
   if(status .ne. 0) goto 777                     ! error
   write(6,*)'PASSED'
 
-  write(6,*)'========== testing D77 functionality  =========='
+  write(6,*)'========== testing D77 functionality and endianness  =========='
   iund77 = 0
   status = fnom(iund77,'/tmp/Scrap','D77+UNF',10)
+  errmsg = "file creation error"
   if(status .ne. 0) goto 777                     ! error
   darray = -1
   read(iund77,rec=2)darray(2:11)
+  errmsg = "ENDIAN ORDER"
   if(darray(2) == ishft(11,24)) then
-    write(6, 12)'ENDIAN ORDER ERROR reading D77, expecting 11, got',darray(2)
+    write(6, 12)'reading scaler (D77 file), expecting 11, got',darray(2)
 12 format(A,Z10.8)
-    goto 777
+!     goto 777
   endif
   if( any(darray(1:12) .ne. [-1,11,12,13,14,15,16,17,18,19,20,-1]) ) then
     write(6,*)'expecting -1, 11 to 20, -1, BIG ENDIAN order'
@@ -277,9 +297,11 @@ program test
 11 format(A,12I10)
   status = fclos(iund77)
   if(status .ne. 0) goto 777                     ! error
+  errmsg = "/tmp/Scrap removal failed"
   if(c_unlink(Cstr('/tmp/Scrap')) /= 0) goto 777
   if(c_existe(Cstr('/tmp/Scrap')) == 1) goto 777
   write(6,*)'PASSED'
+  errmsg = ""
 
   write(6,*)'========== testing Fortran formatted IO  =========='
 !   write(6,*)'==========   writing    =========='
@@ -332,10 +354,14 @@ program test
   call flush(6)
 
   write(6,*)'========== testing function pointers  =========='
+  errmsg = "calling function fproc1"
   f1 = fproc1(1234)
   write(6,*)'fproc1(1234) = ',f1
+  errmsg = "calling function fproc1 through function pointer"
+  if(f1 .ne. 1234) goto 777
   fdemo1 => fproc1
   f1 = fdemo1(1234)
+  if(f1 .ne. 1234) goto 777
   write(6,*)'fdemo1(1234) = ',f1
   demo1 = C_FUNLOC(fproc1)
   call C_F_PROCPOINTER(demo1,fdemo1)
@@ -344,7 +370,9 @@ program test
     write(6,*)'fdemo1(1234) == ',f1
   else
     write(6,*)'fdemo1(1234) <> ',f1
+    goto 777
   endif
+  errmsg = ""
 
   write(6,*)'========== testing interface to shared library  =========='
   dlhandle = c_dlopen(Cstr('./libdemo.so'), RTLD_LAZY)
@@ -363,8 +391,8 @@ program test
       call C_F_PROCPOINTER(demo1,fdemo1)
       f1 = fdemo1(1234)
       if(f1 .ne. 1234) then
-        write(6,*)'entry Demo1 execution error, f1 .ne. 1234'
-!         goto 777
+        errmsg = 'entry Demo1 execution error, f1 .ne. 1234'
+        goto 777
       endif
     else
       write(6,*)'entry Demo1 not found'
@@ -375,8 +403,8 @@ program test
       call C_F_PROCPOINTER(demo2b,fdemo2b)
       f2 = fdemo2b(5678, 12.23)
       if(f2 .ne. 12.23+5678) then
-        write(6,*)'entry Demo2b execution error'
-!         goto 777
+        errmsg = 'entry Demo2b execution error'
+        goto 777
       endif
     else
       write(6,*)'entry Demo2b not found'
@@ -387,8 +415,8 @@ program test
       call C_F_PROCPOINTER(demo2,fdemo2)
       f2 = fdemo2(5678, 12.23)
       if(f2 .ne. 12.23+5678) then
-        write(6,*)'entry Demo2 execution error, f2 .ne. 12.23+5678'
-!         goto 777
+        errmsg = 'entry Demo2 execution error, f2 .ne. 12.23+5678'
+        goto 777
       endif
     else
       write(6,*)'entry Demo2 not found'
@@ -401,19 +429,27 @@ program test
     write(6,*)'libdemo.so not found'
     write(6,*)'SKIPPED'
   endif
+  errmsg = ""
 
+  ! this test should be performed at the end, as it is not possible to 
+  ! "un redirect" stdout
+  ! or further messages to the screen should be sent thtough unit 0 (STDERR)
   write(6,*)'========== testing stdout redirection  =========='
   stdoutf = C_FILEPTR( C_STDOUT() )
   stdout  = c_freopen(Cstr('./my_stdout'), Cstr('w+'), stdoutf)
-  write(6,*)'this should not appear on screen but in file my_stdout'
+  write(6,*)'this should not appear on screen'
+  write(6,*)'but only in file my_stdout'
   call flush(6)
-  call system(" echo 'TEST: listing contents of ./my_stdout' 1>&2")
+  call system(" echo '===== start of ./my_stdout =====' 1>&2")
   call system("cat ./my_stdout 1>&2")
+  call system(" echo '===== end   of ./my_stdout =====' 1>&2")
   if(c_existe(Cstr('./my_stdout')) == 0) goto 777
   if(c_unlink(Cstr('./my_stdout')) /= 0) goto 777
+  write(0,*)'PASSED'
+  ! from now on, we will be writing to unit 0 (STDERR)
   goto 888
 777 continue
-  write(0,*)'ERROR(S) IN TEST'
+  write(0,*)'ERROR(S) IN TEST : ',errmsg
   call c_exit(13)
 888 continue
   if( test_shm() .ne. 0) goto 777
@@ -425,7 +461,7 @@ program test
 end program
 
 subroutine message_at_exit()
-  write(0,*)'SUCCESSFUL END OF TEST (atexit)'
+  write(0,*)'at_exit : SUCCESSFUL END OF TEST'
 end subroutine message_at_exit
 
 integer function test_shm()
@@ -438,24 +474,78 @@ integer function test_shm()
   integer(C_INT) :: shmemid, dummy
   integer(C_SIZE_T) :: shmemsiz
   type(C_PTR)    :: memadr
-  integer(C_INTPTR_T) :: memint
-  integer(C_INT8_T), dimension(:), pointer :: array
+  integer(C_INTPTR_T) :: memint, memint1
+  integer(C_INT32_T), dimension(:), pointer :: array
+  character(len=1024) :: command
+  integer(C_INT), dimension(1024), target :: verif
+  integer(C_INT) :: fd
+  integer(C_SSIZE_T) :: nc
+  integer :: i
 
   write(0,*)'========== testing shared memory interface  =========='
   shmemsiz= 1024*1024*1024   ! 1GBytes
   shmemid = c_shmget(IPC_PRIVATE, shmemsiz, IPC_CREAT+S_IRUSR+S_IWUSR)
+  if(shmemid < 0) then
+    write(0,*)'shmget FAILED'
+    test_shm = shmemid
+    return
+  endif
   write(0,*) 'shared memory segment id =',shmemid
   memadr  = c_shmat(shmemid, C_NULL_PTR, 0)
-  call C_F_POINTER(memadr, array, [shmemsiz])
+  call C_F_POINTER(memadr, array, [shmemsiz/4])
   memint  = transfer(memadr, memint)
   write(0,'(A,Z16.16)') ' attached at ',memint
+  memint1 = -1
+  if(memint == memint1) then
+    write(0,*) "shmat failed"
+    test_shm = -1
+    return
+  endif
   test_shm = c_shmctl(shmemid, IPC_RMID, shmidds)
-  if(test_shm .ne. 0) return
-  write(0,*) 'before initializing array, PLS input an integer value'
-  read(5,*) dummy
+  if(test_shm .ne. 0) then
+    write(0,*) "shmctl IPC_RMID failed"
+    return
+  endif
+  write(command,'(A,I12)')"ipcs -m --human | grep ",shmemid
+  write(0,*)trim(command)
+  call system("ipcs -m --human | grep key 1>&2")
+  call system(trim(command)//" 1>&2")
+  write(0,*) 'before initializing array, PLS input anything'
+  read(5,*)
+  do i = 1,shmemsiz/4
+    array(i) = i
+  enddo
   array = 1
-  write(0,*) 'after initializing array, PLS input an integer value'
-  read(5,*) dummy
+  write(0,*) 'after initializing array, PLS input anything'
+  read(5,*)
+!   write(command,*) '../shmcheck',shmemid,0,1
+!   write(0,*)trim(command)
+!   call system(trim(command)//" 1>&2")
+  write(command,*) '../shmdump',shmemid,"./my_dump",4096,0
+  write(0,*)trim(command)
+  call system(trim(command)//" 1>&2")  ! dump first 1024 integers from shared memory area
+  fd = c_open("./my_dump"//achar(0), O_RDONLY, 511)  ! mode = 0777
+  if(fd < 0) then
+    write(0,*)"failed to open dump file"
+    test_shm = -1
+    return
+  endif
+  nc = 4096
+  nc = c_read(fd, C_LOC(verif(1)), nc)
+  if(nc .ne. 4096)then
+    test_shm = nc
+    write(0,*)"failed to read dump file completely, read nc =",nc
+    return
+  endif
+  do i=1,1024
+    if(verif(i) .ne. array(i))then
+      write(0,*)"failed to verify dump file at position", i
+      test_shm = -1
+      return
+    endif
+  enddo
+  fd = c_close(fd)
+  write(0,*)"dump file closed after successful verification"
   test_shm = c_shmdt(memadr)
   return
 end function test_shm

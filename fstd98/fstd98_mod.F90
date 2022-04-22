@@ -107,6 +107,19 @@ contains
     status = fstouv(this%iun, options)
   end function ouv
 
+  function ouvr(this, name) result (status) ! calls fstouv
+    implicit none
+    class(fstd98), intent(INOUT) :: this
+    character(len=*), intent(IN) :: name
+    integer(C_INT) :: status
+    integer(C_INT) :: iun
+    integer, external :: fnom
+    iun = 0
+    status = fnom(iun, trim(name),'STD+RND',0)
+    this%iun = iun
+    status = fstouv(this%iun, 'RND')
+  end function ouvr
+
 ! /***************************************************************************** 
 !  *                              F S T F R M                                  *
 !  *                                                                           * 
@@ -1618,9 +1631,15 @@ subroutine test_fstd98
   integer, external :: fnom
   logical :: ok
   type(fstd98) :: fst
+  integer :: ni, nj, nk, handle
+  integer(C_INT), dimension(100,100,100) :: field
+
   status = fnom(iun, 'test_98.fst','STD+RND',0)
   print *,'iun =',iun
   status = fst%ouv(iun,'RND')
+  handle = fstlis(field, iun, ni, nj, nk)
+  handle = fst%lis(field, ni, nj, nk)
+
   status = fst%frm()
   
 end subroutine test_fstd98

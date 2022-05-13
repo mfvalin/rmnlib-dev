@@ -201,7 +201,7 @@ contains
     implicit none
     character(len=*), intent(IN) :: fstr
     logical, intent(IN), optional :: asis
-    character(len=:), allocatable :: cstr
+    character(kind=c_char,len=:), allocatable :: cstr
     logical :: verbatim
 
     verbatim = .false.

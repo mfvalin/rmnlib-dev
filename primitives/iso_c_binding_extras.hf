@@ -85,27 +85,27 @@ integer, parameter :: RTLD_LOCAL = 0
 #if ! defined(_CRAYFTN) && ( defined(__GFORTRAN__) || defined(__INTEL_COMPILER) || defined(__PGI) || defined(__FLANG) )
 #endif
 type, BIND(C) :: C_FILEPTR   ! for FILE STREAM IO calls
-  type(C_PTR) :: p
+  type(C_PTR) :: p = C_NULL_PTR
 end type
 
 ! the following 3 types match libc types for time/sleep calls
 type, bind(C) :: timeval
-  integer(C_TIME_T)      :: tv_sec
-  integer(C_SUSECONDS_T) :: tv_usec
+  integer(C_TIME_T)      :: tv_sec = 0
+  integer(C_SUSECONDS_T) :: tv_usec = 0
 end type
 
 type, bind(C) :: timespec
-  integer(C_TIME_T)      :: tv_sec
-  integer(C_LONG)        :: tv_nsec
+  integer(C_TIME_T)      :: tv_sec = 0
+  integer(C_LONG)        :: tv_nsec = 0
 end type
 
 type, bind(C) :: timezone
-  integer(C_INT) :: tz_minuteswest
-  integer(C_INT) :: tz_dsttime
+  integer(C_INT) :: tz_minuteswest = 0
+  integer(C_INT) :: tz_dsttime = 0
 end type
 
 type, bind(C) :: shmid_ds
-  integer(C_INT), dimension(SIZEOF_SHMID_DS/4) :: x
+  integer(C_INT8_T), dimension(SIZEOF_SHMID_DS) :: x = 0
 end type
 
 ! interfaces tp popular libc functions
@@ -149,6 +149,10 @@ interface c_nanosleep   !  sleep in nanoseconds
   end function c_nanosleep2
 end interface
 
+#if ! defined(MODULE_FUNCTION)
+#define MODULE_FUNCTION function
+#endif
+
 interface c_strnlen
   function f_c_strnlen(str, maxlen) result(strlen) bind(C, name='strnlen')
     import :: C_CHAR, C_SIZE_T
@@ -157,24 +161,36 @@ interface c_strnlen
     integer(C_SIZE_T), intent(IN) :: maxlen
     integer(C_SIZE_T) :: strlen
   end function f_c_strnlen
-  function c_c_strnlen(p, maxlen) result(length) bind(C,name='strnlen')
+  MODULE_FUNCTION f_c_strnlen2(str, maxlen) result(strlen)  ! actual code in Fortran iso_c_binding_extras.F90
+    use ISO_C_BINDING
+    implicit none
+    character(len=*), intent(IN) :: str
+    integer(C_SIZE_T), intent(IN) :: maxlen
+    integer(C_SIZE_T) :: strlen
+  end function f_c_strnlen2
+  function c_c_strnlen(p, maxlen) result(strlen) bind(C,name='strnlen')
     import C_PTR, C_SIZE_T
     type(C_PTR), intent(IN), value :: p
     integer(C_SIZE_T), intent(IN), value :: maxlen
-    integer(C_SIZE_T) :: length
+    integer(C_SIZE_T) :: strlen
   end function c_c_strnlen
 end interface
 
 interface c_strlen
-  function f_c_strlen(str) result(length) bind(C,name='strlen')
+  function f_c_strlen(str) result(strlen) bind(C,name='strlen')
     import C_CHAR, C_SIZE_T
     character(C_CHAR), dimension(*), intent(IN) :: str
-    integer(C_SIZE_T) :: length
+    integer(C_SIZE_T) :: strlen
   end function f_c_strlen
-  function c_c_strlen(str) result(length) bind(C,name='strlen')
+  MODULE_FUNCTION f_c_strlen2(str) result(strlen)  ! actual code in Fortran iso_c_binding_extras.F90
+    use ISO_C_BINDING
+    character(len=*), intent(IN) :: str
+    integer(C_SIZE_T) :: strlen
+  end function f_c_strlen2
+  function c_c_strlen(str) result(strlen) bind(C,name='strlen')
     import C_PTR, C_SIZE_T
     type(C_PTR), intent(IN), value :: str
-    integer(C_SIZE_T) :: length
+    integer(C_SIZE_T) :: strlen
   end function c_c_strlen
 end interface
 

@@ -2,19 +2,19 @@
 module iso_c_binding_extras
   use ISO_C_BINDING
   implicit none
-#define MODULE_FUNCTION module function
+#define FUNCTION module function
 #include <iso_c_binding_extras.hf>
 
 end module
 
 submodule (iso_c_binding_extras) iso_c_binding_extras_1
 contains
-  module procedure f_c_strlen2
+  module procedure f_c_strlen2  ! interface definition in iso_c_binding_extras.hf
     implicit none
     strlen = f_c_strlen(str//achar(0))
   end procedure f_c_strlen2
 
-  module procedure f_c_strnlen2
+  module procedure f_c_strnlen2  ! interface definition in iso_c_binding_extras.hf
     implicit none
     strlen = f_c_strnlen(str//achar(0), maxlen)
   end procedure f_c_strnlen2
@@ -65,7 +65,7 @@ subroutine test_002
   use ISO_C_BINDING
   implicit NONE
 ! test straight include
-#undef MODULE_FUNCTION
+#undef FUNCTION
 #include <iso_c_binding_extras.hf>
   character(len=10) :: c10
   integer(C_SIZE_T) :: one = 1

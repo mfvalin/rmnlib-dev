@@ -149,10 +149,6 @@ interface c_nanosleep   !  sleep in nanoseconds
   end function c_nanosleep2
 end interface
 
-#if ! defined(MODULE_FUNCTION)
-#define MODULE_FUNCTION function
-#endif
-
 interface c_strnlen
   function f_c_strnlen(str, maxlen) result(strlen) bind(C, name='strnlen')
     import :: C_CHAR, C_SIZE_T
@@ -161,7 +157,7 @@ interface c_strnlen
     integer(C_SIZE_T), intent(IN) :: maxlen
     integer(C_SIZE_T) :: strlen
   end function f_c_strnlen
-  MODULE_FUNCTION f_c_strnlen2(str, maxlen) result(strlen)  ! actual code in Fortran iso_c_binding_extras.F90
+  FUNCTION f_c_strnlen2(str, maxlen) result(strlen)  ! actual code in Fortran iso_c_binding_extras.F90
     use ISO_C_BINDING
     implicit none
     character(len=*), intent(IN) :: str
@@ -182,7 +178,7 @@ interface c_strlen
     character(C_CHAR), dimension(*), intent(IN) :: str
     integer(C_SIZE_T) :: strlen
   end function f_c_strlen
-  MODULE_FUNCTION f_c_strlen2(str) result(strlen)  ! actual code in Fortran iso_c_binding_extras.F90
+  FUNCTION f_c_strlen2(str) result(strlen)  ! actual code in Fortran iso_c_binding_extras.F90
     use ISO_C_BINDING
     character(len=*), intent(IN) :: str
     integer(C_SIZE_T) :: strlen

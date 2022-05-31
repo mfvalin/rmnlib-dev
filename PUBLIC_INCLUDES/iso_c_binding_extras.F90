@@ -20,9 +20,10 @@ contains
   end procedure f_c_strnlen2
 end submodule iso_c_binding_extras_1
 
+#undef FUNCTION
 ! make this procedure available even outside of the module
 function f_c_strlen2(str) result(strlen)
-  use ISO_C_BINDING
+  use ISO_C_BINDING, ONLY : C_CHAR, C_SIZE_T
   implicit none
   character(len=*), intent(IN) :: str
   integer(C_SIZE_T) :: strlen
@@ -38,7 +39,7 @@ end function f_c_strlen2
 
 ! make this procedure available even outside of the module
 function f_c_strnlen2(str, maxlen) result(strlen)
-  use ISO_C_BINDING
+  use ISO_C_BINDING, ONLY : C_CHAR, C_SIZE_T
   implicit none
   character(len=*), intent(IN) :: str
   integer(C_SIZE_T), intent(IN) :: maxlen
@@ -58,9 +59,12 @@ end function f_c_strnlen2
 #if defined(SELF_TEST)
 program self_test
   call test_001
+#if defined(FULL_TEST)
   call test_002
+#endif
 end program
 
+#if defined(FULL_TEST)
 subroutine test_002
   use ISO_C_BINDING
   implicit NONE
@@ -84,6 +88,7 @@ subroutine test_002
     print *,'test_002, c_strlen(c10) =', c_strlen(c10),' should be 4'
   endif
 end subroutine test_002
+#endif
 
 subroutine test_001
 ! test using module

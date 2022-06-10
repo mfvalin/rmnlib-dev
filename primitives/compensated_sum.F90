@@ -338,6 +338,7 @@ end
 
 program test_sum
   use compensated_sums
+  use mpi
   implicit none
   real(kind=4), dimension(NPTS) :: A4, B4
   real(kind=8), dimension(NPTS) :: A8, B8
@@ -348,9 +349,10 @@ program test_sum
   real(kind=4), external :: dumbsum
   real(kind=8), external :: WALL_Time
   real(kind=8) :: t4, t8, t48
-  integer :: ierr
+  integer :: ierr, my_rank
 
-!   call mpi_init(ierr)
+  call mpi_init(ierr)
+  call MPI_Comm_rank(MPI_COMM_WORLD, my_rank, ierr)
   A4       = 1.0
   B4       = 1.0
   A8       = 1.0
@@ -368,49 +370,67 @@ program test_sum
 #endif
   S4 = 0.0
   E4 = 0.0
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t4 = WALL_Time()
   call add_to_sum4_8(S4, E4, A4, NPTS, 1)
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t4 = WALL_Time() - t4
   S8 = 0.0
   E8 = 0.0
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t8 = WALL_Time()
   call add_to_sum8_4(S8, E8, A8, NPTS, 1)
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t8 = WALL_Time() - t8
   r4 = (size(a4) - 1000) + (1000.0_8*A4(NPTS-999))
   r4b = S4(1)+(1.0_8*E4(1))
   r8b = S4(1)+(1.0_8*E4(1))
   r8 = (size(a8) - 1000) + (1000.0*A8(NPTS-999))
+  if(my_rank ==0) then
   print 3,'                 ANSWER                   SUM                 COMPENSATED SUM                ERROR'
   print 1,'SUM4  =', sum(1.0_8*A4), sum(A4), S4(1), E4(1), dumbsum(A4, NPTS)!, r8b
   print 2,'SUM8  =', r8, sum(A8), S8(1), E8(1)
+  endif
   S48 = 0.0
   E48 = 0.0
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t48 = WALL_Time()
   call add_to_sum48_4(S48, E48, A4, NPTS, 1)
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t48 = WALL_Time() - t48
+  if(my_rank ==0) then
   print 1,'SUM48 =', sum(1.0_8*A4), sum(1.0*A4), S48(1), E48(1)
   print 1, 'T     =',t4,t8,t48
   print 1, 'PTS/s =',NPTS/t4,NPTS/t8,NPTS/t48
 !-------------------------------------------------------------------------------------
   print *,''
   print *,'dot product with a vector of 1.0'
+  endif
   S8 = 0.0
   E8 = 0.0
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t8 = WALL_Time()
   call add_to_dot8_4(S8, E8, A8, B8, NPTS, 1)
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t8 = WALL_Time() - t8
+  if(my_rank ==0) then
   print 2,'DOT8  =', r8, sum(A8*B8), S8(1), E8(1)
+  endif
   S8 = 0.0
   E8 = 0.0
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t48 = WALL_Time()
   call add_to_dot48_4(S8, E8, A4, B4, NPTS, 1)
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t48 = WALL_Time() - t48
+  if(my_rank ==0) then
   print 1,'DOT48 =', sum(1.0_8*A4*B4), sum(A4*B4), S8(1), E8(1)
   print 1, 'T     =',t8,t48
   print 1, 'PTS/s =',NPTS/t8,NPTS/t48
 !-------------------------------------------------------------------------------------
   print *,''
   print *,'dot product with self'
+  endif
   A4(NPTS-999)   = 0.5
   A8(NPTS-999)   = 0.5
 #if defined LARGE
@@ -424,23 +444,32 @@ program test_sum
 #endif
   S8 = 0.0
   E8 = 0.0
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t8 = WALL_Time()
   call add_to_dot8_4(S8, E8, A8, A8, NPTS, 1)
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t8 = WALL_Time() - t8
   r8 = (size(a8) - 1000) + (1000.0 * A8(NPTS-999)**2) 
+  if(my_rank ==0) then
   print 2,'DOT8  =', r8, sum(A8**2), S8(1), E8(1)
+  endif
   S8 = 0.0
   E8 = 0.0
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t48 = WALL_Time()
   call add_to_dot48_4(S8, E8, A4, A4, NPTS, 1)
+  call MPI_Barrier(MPI_COMM_WORLD, ierr)
   t48 = WALL_Time() - t48
   r4 = (size(a4) - 1000) + (1000.0_8 * A4(NPTS-999)**2)
+  if(my_rank ==0) then
   print 1,'DOT48 =', sum(1.0_8*A4*A4), sum(A4*A4), S8(1), E8(1)
   print 1, 'T     =',t8,t48
   print 1, 'PTS/s =',NPTS/t8,NPTS/t48
+  endif
+
+  call mpi_finalize(ierr)
 1 format (A8,8G25.9)
 2 format (A8,8G25.17)
 3 format (A)
-!   call mpi_finalize(ierr)
 end
 #endif

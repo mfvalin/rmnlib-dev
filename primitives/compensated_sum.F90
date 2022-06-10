@@ -24,8 +24,6 @@
 #define VOLATILE , volatile
 #endif
 
-module compensated_sums
-contains
 subroutine add_to_dot48_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
   implicit none
   integer, intent(IN) :: N
@@ -275,7 +273,6 @@ subroutine add_to_sum4_8(sum, err, input, N, fold) BIND(C,name='AddToSum4')
   endif
 
 end
-end module
 
 #if defined(SELF_TEST)
 #if 0
@@ -337,9 +334,9 @@ function WALL_Time() result(S)
 end
 
 program test_sum
-  use compensated_sums
   use mpi
   implicit none
+  include 'compensated_sum.inc'
   real(kind=4), dimension(NPTS) :: A4, B4
   real(kind=8), dimension(NPTS) :: A8, B8
   real(kind=4), dimension(8) :: S4, E4

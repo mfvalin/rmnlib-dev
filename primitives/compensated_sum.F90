@@ -59,8 +59,10 @@ subroutine add_to_dot48_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
   if(fold .ne. 0) then
     do j = 2, 4                   ! fold everything into S(1), E(1)
       E(1) = E(1) + E(j)          ! fold error terms
+      E(j) = 0.0                  ! cancel after use
       Z(1) = S(1)                 ! save current value of sum
       Y(1) = S(j) + E(1)          ! add accumulated error and input
+      S(j) = 0.0                  ! cancel after use
       S(1) = Z(1) + Y(1)          ! add new term to sum
       E(1) = (Z(1) - S(1)) + Y(1) ! new error = (old sum - new sum) + (new term + error)
     enddo
@@ -106,8 +108,10 @@ subroutine add_to_sum48_4(sum, err, input, N, fold) BIND(C,name='AddToSum48')
   if(fold .ne. 0) then
     do j = 2, 4                   ! fold everything into S(1), E(1)
       E(1) = E(1) + E(j)          ! fold error terms
+      E(j) = 0.0                  ! cancel after use
       Z(1) = S(1)                 ! save current value of sum
       Y(1) = S(j) + E(1)          ! add accumulated error and input
+      S(j) = 0.0                  ! cancel after use
       S(1) = Z(1) + Y(1)          ! add new term to sum
       E(1) = (Z(1) - S(1)) + Y(1) ! new error = (old sum - new sum) + (new term + error)
     enddo
@@ -155,8 +159,10 @@ subroutine add_to_dot8_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
   if(fold .ne. 0) then
     do j = 2, 4                   ! fold everything into S(1), E(1)
       E(1) = E(1) + E(j)          ! fold error terms
+      E(j) = 0.0                  ! cancel after use
       Z(1) = S(1)                 ! save current value of sum
       Y(1) = S(j) + E(1)          ! add accumulated error and input
+      S(j) = 0.0                  ! cancel after use
       S(1) = Z(1) + Y(1)          ! add new term to sum
       E(1) = (Z(1) - S(1)) + Y(1) ! new error = (old sum - new sum) + (new term + error)
     enddo
@@ -202,8 +208,10 @@ subroutine add_to_sum8_4(sum, err, input, N, fold) BIND(C,name='AddToSum8')
   if(fold .ne. 0) then
     do j = 2, 4                   ! fold everything into S(1), E(1)
       E(1) = E(1) + E(j)          ! fold error terms
+      E(j) = 0.0                  ! cancel after use
       Z(1) = S(1)                 ! save current value of sum
       Y(1) = S(j) + E(1)          ! add accumulated error and input
+      S(j) = 0.0                  ! cancel after use
       S(1) = Z(1) + Y(1)          ! add new term to sum
       E(1) = (Z(1) - S(1)) + Y(1) ! new error = (old sum - new sum) + (new term + error)
     enddo
@@ -260,8 +268,10 @@ subroutine add_to_sum4_8(sum, err, input, N, fold) BIND(C,name='AddToSum4')
   if(fold .ne. 0) then
     do j = 2, 8                   ! fold everything into S(1), E(1)
       E(1) = E(1) + E(j)          ! fold error terms
+      E(j) = 0.0                  ! cancel after use
       Z(1) = S(1)                 ! save current value of sum
       Y(1) = S(j) + E(1)          ! add accumulated error and input
+      S(j) = 0.0                  ! cancel after use
       S(1) = Z(1) + Y(1)          ! add new term to sum
       E(1) = (Z(1) - S(1)) + Y(1) ! new error = (old sum - new sum) + (new term + error)
     enddo

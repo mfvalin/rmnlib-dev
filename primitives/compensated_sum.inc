@@ -23,7 +23,23 @@ subroutine add_to_dot48_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN) :: fold
 end
+subroutine add_to_dot48_c(sum, err, a, b, N, fold) BIND(C,name='AddToDot48_c')
+  implicit none
+  integer, intent(IN) :: N
+  real(kind=4), dimension(N), intent(IN)    :: a, b    ! input data to dot product
+  real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
+  real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
+  integer, intent(IN) :: fold
+end
 subroutine add_to_sum48_4(sum, err, input, N, fold) BIND(C,name='AddToSum48')
+  implicit none
+  integer, intent(IN) :: N
+  real(kind=4), dimension(N), intent(IN)    :: input   ! input data to sum
+  real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
+  real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
+  integer, intent(IN) :: fold
+end
+subroutine add_to_sum48_c(sum, err, input, N, fold) BIND(C,name='AddToSum48_c')
   implicit none
   integer, intent(IN) :: N
   real(kind=4), dimension(N), intent(IN)    :: input   ! input data to sum
@@ -39,7 +55,23 @@ subroutine add_to_dot8_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN) :: fold
 end
+subroutine add_to_dot8_c(sum, err, a, b, N, fold) BIND(C,name='AddToDot8_c')
+  implicit none
+  integer, intent(IN) :: N
+  real(kind=8), dimension(N), intent(IN)    :: a, b    ! input data to sum
+  real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
+  real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
+  integer, intent(IN) :: fold
+end
 subroutine add_to_sum8_4(sum, err, input, N, fold) BIND(C,name='AddToSum8')
+  implicit none
+  integer, intent(IN) :: N
+  real(kind=8), dimension(N), intent(IN)    :: input   ! input data to sum
+  real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
+  real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
+  integer, intent(IN) :: fold
+end
+subroutine add_to_sum8_c(sum, err, input, N, fold) BIND(C,name='AddToSum8_c')
   implicit none
   integer, intent(IN) :: N
   real(kind=8), dimension(N), intent(IN)    :: input   ! input data to sum

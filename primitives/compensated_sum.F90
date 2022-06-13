@@ -85,7 +85,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_sum48(this%sum, this%err, a, n, ifold)
+    call AddToSum48(this%sum, this%err, a, n, ifold)
   end subroutine
   subroutine add_to_csum41(this, a, n, fold, init)
     implicit none
@@ -97,7 +97,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_sum48(this%sum, this%err, a, n, ifold)
+    call AddToSum48(this%sum, this%err, a, n, ifold)
   end subroutine
   subroutine add_to_csum42(this, a, n, fold, init)
     implicit none
@@ -109,7 +109,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_sum48(this%sum, this%err, a, n, ifold)
+    call AddToSum48(this%sum, this%err, a, n, ifold)
   end subroutine
   subroutine add_to_csum43(this, a, n, fold, init)
     implicit none
@@ -121,7 +121,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_sum48(this%sum, this%err, a, n, ifold)
+    call AddToSum48(this%sum, this%err, a, n, ifold)
   end subroutine
   subroutine add_to_csum8(this, a, n, fold, init)
     implicit none
@@ -135,7 +135,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_sum8(this%sum, this%err, a, n, ifold)
+    call AddToSum8(this%sum, this%err, a, n, ifold)
   end subroutine
   subroutine add_to_csum81(this, a, n, fold, init)
     implicit none
@@ -147,7 +147,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_sum8(this%sum, this%err, a, n, ifold)
+    call AddToSum8(this%sum, this%err, a, n, ifold)
   end subroutine
   subroutine add_to_csum82(this, a, n, fold, init)
     implicit none
@@ -159,7 +159,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_sum8(this%sum, this%err, a, n, ifold)
+    call AddToSum8(this%sum, this%err, a, n, ifold)
   end subroutine
   subroutine add_to_csum83(this, a, n, fold, init)
     implicit none
@@ -171,7 +171,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_sum8(this%sum, this%err, a, n, ifold)
+    call AddToSum8(this%sum, this%err, a, n, ifold)
   end subroutine
   subroutine add_to_cdot4(this, a, b, n, fold, init)
     implicit none
@@ -185,7 +185,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_dot48(this%sum, this%err, a, b, n, ifold)
+    call AddToDot48(this%sum, this%err, a, b, n, ifold)
   end subroutine
   subroutine add_to_cdot41(this, a, b, n, fold, init)
     implicit none
@@ -197,7 +197,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_dot48(this%sum, this%err, a, b, n, ifold)
+    call AddToDot48(this%sum, this%err, a, b, n, ifold)
   end subroutine
   subroutine add_to_cdot42(this, a, b, n, fold, init)
     implicit none
@@ -209,7 +209,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_dot48(this%sum, this%err, a, b, n, ifold)
+    call AddToDot48(this%sum, this%err, a, b, n, ifold)
   end subroutine
   subroutine add_to_cdot43(this, a, b, n, fold, init)
     implicit none
@@ -221,7 +221,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_dot48(this%sum, this%err, a, b, n, ifold)
+    call AddToDot48(this%sum, this%err, a, b, n, ifold)
   end subroutine
   subroutine add_to_cdot8(this, a, b, n, fold, init)
     implicit none
@@ -235,7 +235,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_dot8(this%sum, this%err, a, b, n, ifold)
+    call AddToDot8(this%sum, this%err, a, b, n, ifold)
   end subroutine
   subroutine add_to_cdot81(this, a, b, n, fold, init)
     implicit none
@@ -247,7 +247,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_dot8(this%sum, this%err, a, b, n, ifold)
+    call AddToDot8(this%sum, this%err, a, b, n, ifold)
   end subroutine
   subroutine add_to_cdot82(this, a, b, n, fold, init)
     implicit none
@@ -259,7 +259,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_dot8(this%sum, this%err, a, b, n, ifold)
+    call AddToDot8(this%sum, this%err, a, b, n, ifold)
   end subroutine
   subroutine add_to_cdot83(this, a, b, n, fold, init)
     implicit none
@@ -271,7 +271,7 @@ contains
     ifold = 0
     if(present(fold)) ifold = fold
     if(present(init)) call init_csum(this)
-    call add_to_dot8(this%sum, this%err, a, b, n, ifold)
+    call AddToDot8(this%sum, this%err, a, b, n, ifold)
   end subroutine
 end module
 
@@ -283,7 +283,7 @@ end module
 #endif
 
 #if defined(OLD_FORTRAN_CODE)
-subroutine add_to_dot48_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
+subroutine AddToDot48_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
   implicit none
   integer, intent(IN) :: N
   real(kind=4), dimension(N), intent(IN)    :: a, b    ! input data to dot product
@@ -334,7 +334,7 @@ subroutine add_to_dot48_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
 
 end
 
-subroutine add_to_sum48_4(sum, err, input, N, fold) BIND(C,name='AddToSum48')
+subroutine AddToSum48_4(sum, err, input, N, fold) BIND(C,name='AddToSum48')
   implicit none
   integer, intent(IN) :: N
   real(kind=4), dimension(N), intent(IN)    :: input   ! input data to sum
@@ -383,7 +383,7 @@ subroutine add_to_sum48_4(sum, err, input, N, fold) BIND(C,name='AddToSum48')
 
 end
 
-subroutine add_to_dot8_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
+subroutine AddToDot8_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
   implicit none
   integer, intent(IN) :: N
   real(kind=8), dimension(N), intent(IN)    :: a, b    ! input data to sum
@@ -434,7 +434,7 @@ subroutine add_to_dot8_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
 
 end
 
-subroutine add_to_sum8_4(sum, err, input, N, fold) BIND(C,name='AddToSum8')
+subroutine AddToSum8_4(sum, err, input, N, fold) BIND(C,name='AddToSum8')
   implicit none
   integer, intent(IN) :: N
   real(kind=8), dimension(N), intent(IN)    :: input   ! input data to sum
@@ -483,7 +483,7 @@ subroutine add_to_sum8_4(sum, err, input, N, fold) BIND(C,name='AddToSum8')
 
 end
 
-subroutine add_to_sum4_8(sum, err, input, N, fold) BIND(C,name='AddToSum4')
+subroutine AddToSum4_8(sum, err, input, N, fold) BIND(C,name='AddToSum4')
   implicit none
   integer, intent(IN) :: N
   real(kind=4), dimension(N), intent(IN)    :: input   ! input data to sum

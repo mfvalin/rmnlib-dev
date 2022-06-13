@@ -15,7 +15,7 @@
 !> \date 2022
 ! interfaces to the C functions for compensated sums and dot products
 interface
-subroutine add_to_dot48(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
+subroutine AddToDot48(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
   implicit none
   integer, intent(IN), value :: N
 #define IgnoreTypeKindRank a, b
@@ -26,7 +26,7 @@ subroutine add_to_dot48(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
-subroutine add_to_sum48(sum, err, input, N, fold) BIND(C,name='AddToSum48')
+subroutine AddToSum48(sum, err, input, N, fold) BIND(C,name='AddToSum48')
   implicit none
   integer, intent(IN), value :: N
 #define IgnoreTypeKindRank input
@@ -37,7 +37,7 @@ subroutine add_to_sum48(sum, err, input, N, fold) BIND(C,name='AddToSum48')
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
-subroutine add_to_dot8(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
+subroutine AddToDot8(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
   implicit none
   integer, intent(IN), value :: N
 #define IgnoreTypeKindRank a, b
@@ -48,7 +48,7 @@ subroutine add_to_dot8(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
-subroutine add_to_sum8(sum, err, input, N, fold) BIND(C,name='AddToSum8')
+subroutine AddToSum8(sum, err, input, N, fold) BIND(C,name='AddToSum8')
   implicit none
   integer, intent(IN), value :: N
 #define IgnoreTypeKindRank input
@@ -62,7 +62,7 @@ end
 ! the following routines differ from the previous ones
 ! sums and errors are accumulated using real(kind=4) elements
 ! its use is NOT RECOMMENDED except for precision testing purposes 
-subroutine add_to_dot4(sum, err, a, b, N, fold) BIND(C,name='AddToDot4')
+subroutine AddToDot4(sum, err, a, b, N, fold) BIND(C,name='AddToDot4')
   implicit none
   integer, intent(IN), value :: N
 #define IgnoreTypeKindRank a, b
@@ -73,7 +73,7 @@ subroutine add_to_dot4(sum, err, a, b, N, fold) BIND(C,name='AddToDot4')
   real(kind=4), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
-subroutine add_to_sum4(sum, err, input, N, fold) BIND(C,name='AddToSum4')
+subroutine AddToSum4(sum, err, input, N, fold) BIND(C,name='AddToSum4')
   implicit none
   integer, intent(IN), value :: N
 #define IgnoreTypeKindRank input

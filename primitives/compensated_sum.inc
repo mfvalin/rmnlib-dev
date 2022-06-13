@@ -13,78 +13,75 @@
 !
 !> \author M. Valin,   Recherche en Prevision Numerique
 !> \date 2022
-!
+! interfaces to the C functions for compensated sums and dot products
 interface
-subroutine add_to_dot48_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
-  implicit none
-  integer, intent(IN) :: N
-  real(kind=4), dimension(N), intent(IN)    :: a, b    ! input data to dot product
-  real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
-  real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
-  integer, intent(IN) :: fold
-end
-subroutine add_to_dot48_c(sum, err, a, b, N, fold) BIND(C,name='AddToDot48_c')
+subroutine add_to_dot48(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
   implicit none
   integer, intent(IN), value :: N
-  real(kind=4), dimension(N), intent(IN)    :: a, b    ! input data to dot product
+#define IgnoreTypeKindRank a, b
+#define ExtraAttributes 
+#include <IgnoreTypeKindRank.hf>
+!  real(kind=4), dimension(N), intent(IN)    :: a, b    ! input data to dot product
   real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
-subroutine add_to_sum48_4(sum, err, input, N, fold) BIND(C,name='AddToSum48')
-  implicit none
-  integer, intent(IN) :: N
-  real(kind=4), dimension(N), intent(IN)    :: input   ! input data to sum
-  real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
-  real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
-  integer, intent(IN) :: fold
-end
-subroutine add_to_sum48_c(sum, err, input, N, fold) BIND(C,name='AddToSum48_c')
+subroutine add_to_sum48(sum, err, input, N, fold) BIND(C,name='AddToSum48')
   implicit none
   integer, intent(IN), value :: N
-  real(kind=4), dimension(N), intent(IN)    :: input   ! input data to sum
+#define IgnoreTypeKindRank input
+#define ExtraAttributes 
+#include <IgnoreTypeKindRank.hf>
+!  real(kind=4), dimension(N), intent(IN)    :: input   ! input data to sum
   real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
-subroutine add_to_dot8_4(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
-  implicit none
-  integer, intent(IN) :: N
-  real(kind=8), dimension(N), intent(IN)    :: a, b    ! input data to sum
-  real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
-  real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
-  integer, intent(IN) :: fold
-end
-subroutine add_to_dot8_c(sum, err, a, b, N, fold) BIND(C,name='AddToDot8_c')
+subroutine add_to_dot8(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
   implicit none
   integer, intent(IN), value :: N
-  real(kind=8), dimension(N), intent(IN)    :: a, b    ! input data to sum
+#define IgnoreTypeKindRank a, b
+#define ExtraAttributes 
+#include <IgnoreTypeKindRank.hf>
+!  real(kind=8), dimension(N), intent(IN)    :: a, b    ! input data to sum
   real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
-subroutine add_to_sum8_4(sum, err, input, N, fold) BIND(C,name='AddToSum8')
-  implicit none
-  integer, intent(IN) :: N
-  real(kind=8), dimension(N), intent(IN)    :: input   ! input data to sum
-  real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
-  real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
-  integer, intent(IN) :: fold
-end
-subroutine add_to_sum8_c(sum, err, input, N, fold) BIND(C,name='AddToSum8_c')
+subroutine add_to_sum8(sum, err, input, N, fold) BIND(C,name='AddToSum8')
   implicit none
   integer, intent(IN), value :: N
-  real(kind=8), dimension(N), intent(IN)    :: input   ! input data to sum
+#define IgnoreTypeKindRank input
+#define ExtraAttributes 
+#include <IgnoreTypeKindRank.hf>
+!  real(kind=8), dimension(N), intent(IN)    :: input   ! input data to sum
   real(kind=8), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
-subroutine add_to_sum4_8(sum, err, input, N, fold) BIND(C,name='AddToSum4')
+! the following routines differ from the previous ones
+! sums and errors are accumulated using real(kind=4) elements
+! its use is NOT RECOMMENDED except for precision testing purposes 
+subroutine add_to_dot4(sum, err, a, b, N, fold) BIND(C,name='AddToDot4')
   implicit none
-  integer, intent(IN) :: N
-  real(kind=4), dimension(N), intent(IN)    :: input   ! input data to sum
-  real(kind=4), dimension(8), intent(INOUT) :: sum     ! accumulated partial sums
-  real(kind=4), dimension(8), intent(INOUT) :: err     ! acccumulated error terms
-  integer, intent(IN) :: fold
+  integer, intent(IN), value :: N
+#define IgnoreTypeKindRank a, b
+#define ExtraAttributes 
+#include <IgnoreTypeKindRank.hf>
+!  real(kind=4), dimension(N), intent(IN)    :: a, b    ! input data to sum
+  real(kind=4), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
+  real(kind=4), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
+  integer, intent(IN), value :: fold
+end
+subroutine add_to_sum4(sum, err, input, N, fold) BIND(C,name='AddToSum4')
+  implicit none
+  integer, intent(IN), value :: N
+#define IgnoreTypeKindRank input
+#define ExtraAttributes 
+#include <IgnoreTypeKindRank.hf>
+!  real(kind=4), dimension(N), intent(IN)    :: input   ! input data to sum
+  real(kind=4), dimension(4), intent(INOUT) :: sum     ! accumulated partial sums
+  real(kind=4), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
+  integer, intent(IN), value :: fold
 end
 end interface

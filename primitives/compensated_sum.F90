@@ -1,4 +1,4 @@
-!  compensated sums for FORTRAN 
+!  compensated sums for FORTRAN
 !  Copyright (C) 2022  Recherche en Prevision Numerique
 !
 !  This software is free software; you can redistribute it and/or
@@ -18,41 +18,65 @@
 ! Intel ifx seems to need it if -fp-model=precise/strict is not used
 ! -DVOLATILE is highly detrimental to performance
 
+! - this module implements the csum type and its associates type bound procedures
+! - the 4 byte real sum/error accumulators ARE NOT supported
+! - generic add and dot procedures are provided for up to rank 5 arrays
+! - for arrays with a higher rank, the user must call the type/kind/rank ignoring
+!   procedures add4/add8/dot4/dot8
+! - or "cheat" and pass the FIRST element of the array to the add or dot generic procedure
+!   which will allow the compiler to at least check the variable kind and type
+!
+! fold optional argument : if non zero, fold partial sums into one global sum
+!      and reset error accumutalors err(2:4) and partial sums sum(2:4) to zero
+! init optional argument : if present (value ignored), set accumulators to zero
+!
 module compensated_sums
   implicit none
   private :: init_csum
   private :: add_to_csum4, add_to_csum41, add_to_csum42
   private :: add_to_csum8, add_to_cdot4, add_to_cdot8
   public :: csum
-#include <compensated_sum.inc>
+#include <compensated_sum.hf>
   type :: csum
     private
-    real(kind=8), dimension(4) :: sum
-    real(kind=8), dimension(4) :: err
+    real(kind=8), dimension(4) :: sum   ! partial sums
+    real(kind=8), dimension(4) :: err   ! error accumulators
     contains
-    procedure, PASS :: init  => init_csum
-    procedure, PASS :: csum  => get_csum
-    procedure, PASS :: csums => get_csums
+    procedure, PASS :: init  => init_csum   ! set accumulators to zero
+    procedure, PASS :: csum  => get_csum    ! get global sum (element 1 of sum accumulator)
+    procedure, PASS :: csums => get_csums   ! get all 4 partial sums
 
-    procedure, PASS :: add4  => add_to_csum4
-    procedure, PASS :: add41 => add_to_csum41
-    procedure, PASS :: add42 => add_to_csum42
-    procedure, PASS :: add43 => add_to_csum43
-    procedure, PASS :: add8  => add_to_csum8
-    procedure, PASS :: add81 => add_to_csum81
-    procedure, PASS :: add82 => add_to_csum82
-    procedure, PASS :: add83 => add_to_csum83
-    GENERIC :: add => add81, add82, add83, add41, add42, add43
+    procedure, PASS :: add4  => add_to_csum4   ! type/kind/rank ignoring
+    procedure, PASS :: add40 => add_to_csum40  ! rank 0 (scalar)
+    procedure, PASS :: add41 => add_to_csum41  ! rank 1
+    procedure, PASS :: add42 => add_to_csum42  ! rank 2
+    procedure, PASS :: add43 => add_to_csum43  ! rank 3
+    procedure, PASS :: add44 => add_to_csum44  ! rank 4
+    procedure, PASS :: add45 => add_to_csum45  ! rank 5
+    procedure, PASS :: add8  => add_to_csum8   ! type/kind/rank ignoring
+    procedure, PASS :: add80 => add_to_csum80  ! rank 0 (scalar)
+    procedure, PASS :: add81 => add_to_csum81  ! rank 1
+    procedure, PASS :: add82 => add_to_csum82  ! rank 2
+    procedure, PASS :: add83 => add_to_csum83  ! rank 3
+    procedure, PASS :: add84 => add_to_csum84  ! rank 4
+    procedure, PASS :: add85 => add_to_csum85  ! rank 5
+    GENERIC :: add => add80, add81, add82, add83, add84, add85, add40, add41, add42, add43, add44, add45
 
-    procedure, PASS :: dot4  => add_to_cdot4
-    procedure, PASS :: dot41 => add_to_cdot41
-    procedure, PASS :: dot42 => add_to_cdot42
-    procedure, PASS :: dot43 => add_to_cdot43
-    procedure, PASS :: dot8  => add_to_cdot8
-    procedure, PASS :: dot81 => add_to_cdot81
-    procedure, PASS :: dot82 => add_to_cdot82
-    procedure, PASS :: dot83 => add_to_cdot83
-    GENERIC :: dot => dot81, dot82, dot83, dot41, dot42, dot43
+    procedure, PASS :: dot4  => add_to_cdot4   ! type/kind/rank ignoring
+    procedure, PASS :: dot40 => add_to_cdot40  ! rank 0 (scalar)
+    procedure, PASS :: dot41 => add_to_cdot41  ! rank 1
+    procedure, PASS :: dot42 => add_to_cdot42  ! rank 2
+    procedure, PASS :: dot43 => add_to_cdot43  ! rank 3
+    procedure, PASS :: dot44 => add_to_cdot44  ! rank 4
+    procedure, PASS :: dot45 => add_to_cdot45  ! rank 5
+    procedure, PASS :: dot8  => add_to_cdot8   ! type/kind/rank ignoring
+    procedure, PASS :: dot80 => add_to_cdot80  ! rank 0 (scalar)
+    procedure, PASS :: dot81 => add_to_cdot81  ! rank 1
+    procedure, PASS :: dot82 => add_to_cdot82  ! rank 2
+    procedure, PASS :: dot83 => add_to_cdot83  ! rank 3
+    procedure, PASS :: dot84 => add_to_cdot84  ! rank 4
+    procedure, PASS :: dot85 => add_to_cdot85  ! rank 5
+    GENERIC :: dot => dot80, dot81, dot82, dot83, dot84, dot85, dot40, dot41, dot42, dot43, dot44, dot45
   end type
 contains
   function get_csum(this) result(sum)
@@ -73,13 +97,25 @@ contains
     this%sum = 0.0
     this%err = 0.0
   end subroutine
-  subroutine add_to_csum4(this, a, n, fold, init)
+  subroutine add_to_csum4(this, a, n, fold, init)   ! unsafe type/kind/rank ignoring procedure
     implicit none
     class(csum), intent(INOUT) :: this
     integer, intent(IN) :: n
 #define IgnoreTypeKindRank a
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToSum48(this%sum, this%err, a, n, ifold)
+  end subroutine
+  subroutine add_to_csum40(this, a, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=4), intent(IN)    :: a
     integer, intent(IN), OPTIONAL :: fold, init
     integer :: ifold
     ifold = 0
@@ -123,13 +159,49 @@ contains
     if(present(init)) call init_csum(this)
     call AddToSum48(this%sum, this%err, a, n, ifold)
   end subroutine
-  subroutine add_to_csum8(this, a, n, fold, init)
+  subroutine add_to_csum44(this, a, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=4), dimension(1,1,1,*), intent(IN)    :: a
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToSum48(this%sum, this%err, a, n, ifold)
+  end subroutine
+  subroutine add_to_csum45(this, a, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=4), dimension(1,1,1,1,*), intent(IN)    :: a
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToSum48(this%sum, this%err, a, n, ifold)
+  end subroutine
+  subroutine add_to_csum8(this, a, n, fold, init)   ! unsafe type/kind/rank ignoring procedure
     implicit none
     class(csum), intent(INOUT) :: this
     integer, intent(IN) :: n
 #define IgnoreTypeKindRank a
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToSum8(this%sum, this%err, a, n, ifold)
+  end subroutine
+  subroutine add_to_csum80(this, a, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=8), intent(IN)    :: a
     integer, intent(IN), OPTIONAL :: fold, init
     integer :: ifold
     ifold = 0
@@ -173,13 +245,49 @@ contains
     if(present(init)) call init_csum(this)
     call AddToSum8(this%sum, this%err, a, n, ifold)
   end subroutine
-  subroutine add_to_cdot4(this, a, b, n, fold, init)
+  subroutine add_to_csum84(this, a, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=8), dimension(1,1,1,*), intent(IN)    :: a
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToSum8(this%sum, this%err, a, n, ifold)
+  end subroutine
+  subroutine add_to_csum85(this, a, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=8), dimension(1,1,1,1,*), intent(IN)    :: a
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToSum8(this%sum, this%err, a, n, ifold)
+  end subroutine
+  subroutine add_to_cdot4(this, a, b, n, fold, init)   ! unsafe type/kind/rank ignoring procedure
     implicit none
     class(csum), intent(INOUT) :: this
     integer, intent(IN) :: n
 #define IgnoreTypeKindRank a, b
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToDot48(this%sum, this%err, a, b, n, ifold)
+  end subroutine
+  subroutine add_to_cdot40(this, a, b, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=4), intent(IN)    :: a, b
     integer, intent(IN), OPTIONAL :: fold, init
     integer :: ifold
     ifold = 0
@@ -223,13 +331,49 @@ contains
     if(present(init)) call init_csum(this)
     call AddToDot48(this%sum, this%err, a, b, n, ifold)
   end subroutine
-  subroutine add_to_cdot8(this, a, b, n, fold, init)
+  subroutine add_to_cdot44(this, a, b, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=4), dimension(1,1,1,*), intent(IN)    :: a, b
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToDot48(this%sum, this%err, a, b, n, ifold)
+  end subroutine
+  subroutine add_to_cdot45(this, a, b, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=4), dimension(1,1,1,1,*), intent(IN)    :: a, b
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToDot48(this%sum, this%err, a, b, n, ifold)
+  end subroutine
+  subroutine add_to_cdot8(this, a, b, n, fold, init)   ! unsafe type/kind/rank ignoring procedure
     implicit none
     class(csum), intent(INOUT) :: this
     integer, intent(IN) :: n
 #define IgnoreTypeKindRank a, b
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToDot8(this%sum, this%err, a, b, n, ifold)
+  end subroutine
+  subroutine add_to_cdot80(this, a, b, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=8), intent(IN)    :: a, b
     integer, intent(IN), OPTIONAL :: fold, init
     integer :: ifold
     ifold = 0
@@ -266,6 +410,30 @@ contains
     class(csum), intent(INOUT) :: this
     integer, intent(IN) :: n
     real(kind=8), dimension(1,1,*), intent(IN)    :: a, b
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToDot8(this%sum, this%err, a, b, n, ifold)
+  end subroutine
+  subroutine add_to_cdot84(this, a, b, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=8), dimension(1,1,1,*), intent(IN)    :: a, b
+    integer, intent(IN), OPTIONAL :: fold, init
+    integer :: ifold
+    ifold = 0
+    if(present(fold)) ifold = fold
+    if(present(init)) call init_csum(this)
+    call AddToDot8(this%sum, this%err, a, b, n, ifold)
+  end subroutine
+  subroutine add_to_cdot85(this, a, b, n, fold, init)
+    implicit none
+    class(csum), intent(INOUT) :: this
+    integer, intent(IN) :: n
+    real(kind=8), dimension(1,1,1,1,*), intent(IN)    :: a, b
     integer, intent(IN), OPTIONAL :: fold, init
     integer :: ifold
     ifold = 0

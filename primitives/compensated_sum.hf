@@ -1,4 +1,4 @@
-!  compensated sums for FORTRAN 
+!  compensated sums for FORTRAN
 !  Copyright (C) 2022  Recherche en Prevision Numerique
 !
 !  This software is free software; you can redistribute it and/or
@@ -13,8 +13,13 @@
 !
 !> \author M. Valin,   Recherche en Prevision Numerique
 !> \date 2022
-! interfaces to the C functions for compensated sums and dot products
+!
+! Fortran interfaces to the C functions implementing compensated sums and dot products
+! this include file is predominantly used by compensated_sum.F90 and tests
+!
 interface
+! sum and error accumutalors : 8 byte reals
+! expected input data : 4 byte reals
 subroutine AddToDot48(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
   implicit none
   integer, intent(IN), value :: N
@@ -26,6 +31,8 @@ subroutine AddToDot48(sum, err, a, b, N, fold) BIND(C,name='AddToDot48')
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
+! sum and error accumutalors : 8 byte reals
+! expected input data : 4 byte reals
 subroutine AddToSum48(sum, err, input, N, fold) BIND(C,name='AddToSum48')
   implicit none
   integer, intent(IN), value :: N
@@ -37,6 +44,8 @@ subroutine AddToSum48(sum, err, input, N, fold) BIND(C,name='AddToSum48')
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
+! sum and error accumutalors : 8 byte reals
+! expected input data : 8 byte reals
 subroutine AddToDot8(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
   implicit none
   integer, intent(IN), value :: N
@@ -48,6 +57,8 @@ subroutine AddToDot8(sum, err, a, b, N, fold) BIND(C,name='AddToDot8')
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
+! sum and error accumutalors : 8 byte reals
+! expected input data : 8 byte reals
 subroutine AddToSum8(sum, err, input, N, fold) BIND(C,name='AddToSum8')
   implicit none
   integer, intent(IN), value :: N
@@ -61,7 +72,9 @@ subroutine AddToSum8(sum, err, input, N, fold) BIND(C,name='AddToSum8')
 end
 ! the following routines differ from the previous ones
 ! sums and errors are accumulated using real(kind=4) elements
-! its use is NOT RECOMMENDED except for precision testing purposes 
+! their use is NOT RECOMMENDED except for precision testing purposes 
+! sum and error accumutalors : 4 byte reals
+! expected input data : 4 byte reals
 subroutine AddToDot4(sum, err, a, b, N, fold) BIND(C,name='AddToDot4')
   implicit none
   integer, intent(IN), value :: N
@@ -73,6 +86,8 @@ subroutine AddToDot4(sum, err, a, b, N, fold) BIND(C,name='AddToDot4')
   real(kind=4), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
+! sum and error accumutalors : 4 byte reals
+! expected input data : 4 byte reals
 subroutine AddToSum4(sum, err, input, N, fold) BIND(C,name='AddToSum4')
   implicit none
   integer, intent(IN), value :: N

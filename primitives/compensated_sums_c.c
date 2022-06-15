@@ -1,4 +1,4 @@
-// compensated sums for FORTRAN 
+// compensated sums for FORTRAN and C
 // Copyright (C) 2022  Recherche en Prevision Numerique
 // 
 // This software is free software; you can redistribute it and/or
@@ -16,6 +16,9 @@
 
 // the main procedure body is the same for all and comes from compensated_sums_c.h
 
+// -DVOLATILE may be needed to defeat some aggressive optimizations (as in -Ofast)
+// -DVOLATILE is highly detrimental to performance
+
 #if ! defined(VOLATILE)
 #define VOLATILE
 #else
@@ -23,8 +26,11 @@
 #define VOLATILE volatile
 #endif
 
+// structs for accumulators, function protptypes, macros
 #include <compensated_sums.h>
 
+// input data : 4 byte floats
+// partial sum and error accumulators : 4 byte floats
 void AddToDot4(float *sum, float *err, float *a, float *b, int n, int fold){
   float VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   float VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
@@ -34,6 +40,8 @@ void AddToDot4(float *sum, float *err, float *a, float *b, int n, int fold){
 #undef input
 }
 
+// input data : 4 byte floats
+// partial sum and error accumulators : 8 byte doubles
 void AddToDot48(double *sum, double *err, float *a, float *b, int n, int fold){
   double VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   double VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
@@ -43,6 +51,8 @@ void AddToDot48(double *sum, double *err, float *a, float *b, int n, int fold){
 #undef input
 }
 
+// input data : 8 byte doubles
+// partial sum and error accumulators : 8 byte doubles
 void AddToDot8(double *sum, double *err, double *a, double *b, int n, int fold){
   double VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   double VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
@@ -52,6 +62,8 @@ void AddToDot8(double *sum, double *err, double *a, double *b, int n, int fold){
 #undef input
 }
 
+// input data : 4 byte floats
+// partial sum and error accumulators : 4 byte floats
 void AddToSum4(float *sum, float *err, float *a, int n, int fold){
   float VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   float VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
@@ -61,6 +73,8 @@ void AddToSum4(float *sum, float *err, float *a, int n, int fold){
 #undef input
 }
 
+// input data : 4 byte floats
+// partial sum and error accumulators : 8 byte doubles
 void AddToSum48(double *sum, double *err, float *a, int n, int fold){
   double VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   double VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
@@ -70,6 +84,8 @@ void AddToSum48(double *sum, double *err, float *a, int n, int fold){
 #undef input
 }
 
+// input data : 8 byte doubles
+// partial sum and error accumulators : 8 byte doubles
 void AddToSum8(double *sum, double *err, double *a, int n, int fold){
   double VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   double VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization

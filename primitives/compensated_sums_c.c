@@ -26,6 +26,8 @@
 #define VOLATILE volatile
 #endif
 
+double CoNsTaNt1[4] = {1.0, 1.0, 1.0, 1.0 } ;
+
 // structs for accumulators, function protptypes, macros
 #include <compensated_sums.h>
 
@@ -34,6 +36,7 @@
 void AddToDot4(float *sum, float *err, float *a, float *b, int n, int fold){
   float VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   float VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
+  float F[4] ;
   int  i, j, i0 ;
 #define input(x) (a[x] * b[x])
 #include "compensated_sums_c.h"
@@ -45,6 +48,7 @@ void AddToDot4(float *sum, float *err, float *a, float *b, int n, int fold){
 void AddToDot48(double *sum, double *err, float *a, float *b, int n, int fold){
   double VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   double VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
+  double F[4] ;
   int  i, j, i0 ;
 #define input(x) ((double)a[x] * (double)b[x])
 #include "compensated_sums_c.h"
@@ -56,6 +60,7 @@ void AddToDot48(double *sum, double *err, float *a, float *b, int n, int fold){
 void AddToDot8(double *sum, double *err, double *a, double *b, int n, int fold){
   double VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   double VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
+  double F[4] ;
   int  i, j, i0 ;
 #define input(x) (a[x] * b[x] )
 #include "compensated_sums_c.h"
@@ -67,6 +72,7 @@ void AddToDot8(double *sum, double *err, double *a, double *b, int n, int fold){
 void AddToSum4(float *sum, float *err, float *a, int n, int fold){
   float VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   float VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
+  float F[4] ;
   int  i, j, i0 ;
 #define input(x) a[x]
 #include "compensated_sums_c.h"
@@ -78,6 +84,7 @@ void AddToSum4(float *sum, float *err, float *a, int n, int fold){
 void AddToSum48(double *sum, double *err, float *a, int n, int fold){
   double VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   double VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
+  double F[4] ;
   int  i, j, i0 ;
 #define input(x) ((double)a[x])
 #include "compensated_sums_c.h"
@@ -89,6 +96,7 @@ void AddToSum48(double *sum, double *err, float *a, int n, int fold){
 void AddToSum8(double *sum, double *err, double *a, int n, int fold){
   double VOLATILE  S[4], E[4] ; // volatile attribute needed to prevent unwanted optimization
   double VOLATILE  Z[4], Y[4] ; // volatile attribute needed to prevent unwanted optimization
+  double F[4] ;
   int  i, j, i0 ;
 #define input(x) a[x]
 #include "compensated_sums_c.h"

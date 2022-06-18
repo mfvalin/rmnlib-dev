@@ -19,7 +19,8 @@
 ! -DVOLATILE is highly detrimental to performance
 
 ! - this module implements the csum type and its associates type bound procedures
-! - the 4 byte real sum/error accumulators ARE NOT supported
+!   (calls the C procedures using 8 byte sum/error accumulators)
+! - NO INTERFACE is provided to the 4 byte real sum/error accumulators procedures
 ! - generic add and dot procedures are provided for up to rank 5 arrays
 ! - for arrays with a higher rank, the user must call the type/kind/rank ignoring
 !   procedures add4/add8/dot4/dot8

@@ -70,6 +70,7 @@ subroutine AddToSum8(sum, err, input, N, fold) BIND(C,name='AddToSum8')
   real(kind=8), dimension(4), intent(INOUT) :: err     ! acccumulated error terms
   integer, intent(IN), value :: fold
 end
+!=====================================================================================
 ! the following routines differ from the previous ones
 ! sums and errors are accumulated using real(kind=4) elements
 ! their use is NOT RECOMMENDED except for precision testing purposes 

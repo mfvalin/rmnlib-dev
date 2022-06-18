@@ -1,4 +1,4 @@
-// compensated sums for FORTRAN 
+// compensated sums for FORTRAN and C
 // Copyright (C) 2022  Recherche en Prevision Numerique
 // 
 // This software is free software; you can redistribute it and/or

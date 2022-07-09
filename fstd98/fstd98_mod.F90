@@ -23,10 +23,13 @@ module fstd98_mod
   implicit none
 
   type :: fstd98
-    integer :: iun
+    integer     :: iun = -1                  ! Fortran unit number
+    type(C_PTR) :: rsf_struct = C_NULL_PTR   ! pointer to RSF file control structure
   contains
     procedure, PASS(this) :: ckp
-    procedure, PASS(this) :: ouv
+    procedure, PASS(this) :: ouviun
+    procedure, PASS(this) :: ouvauto
+    GENERIC :: ouv => ouviun, ouvauto
     procedure, PASS(this) :: nbr
     procedure, PASS(this) :: nbrv
     procedure, PASS(this) :: inf
@@ -97,7 +100,7 @@ contains
     status = c_fstouv(iun, F2C_TRIM(options))
   end function fstouv
 
-  function ouv(this, iun, options) result (status) ! calls fstouv
+  function ouviun(this, iun, options) result (status) ! calls fstouv
     implicit none
     class(fstd98), intent(INOUT) :: this
     integer(C_INT), intent(IN), value :: iun
@@ -105,9 +108,9 @@ contains
     integer(C_INT) :: status
     this%iun = iun
     status = fstouv(this%iun, options)
-  end function ouv
+  end function ouviun
 
-  function ouvr(this, name) result (status) ! calls fstouv
+  function ouvauto(this, name) result (status) ! calls fstouv
     implicit none
     class(fstd98), intent(INOUT) :: this
     character(len=*), intent(IN) :: name
@@ -118,7 +121,7 @@ contains
     status = fnom(iun, trim(name),'STD+RND',0)
     this%iun = iun
     status = fstouv(this%iun, 'RND')
-  end function ouvr
+  end function ouvauto
 
 ! /***************************************************************************** 
 !  *                              F S T F R M                                  *

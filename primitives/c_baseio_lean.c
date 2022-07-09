@@ -494,12 +494,12 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
        }
      if (nom[0] == '+') {  /* name is of the form +some_file_name */
        c++;              /* skip the +, do not convert to lowercase */
-       lng--;            
+       lng--;
        strncpy(FGFDT[i].file_name, nom+1, lng);
        c2 = FGFDT[i].file_name ;
        *(c2+lng)  = '\0';
        }
-     else {
+     else {    // case conversion to lower case will eventually be deactivated
        c2 = FGFDT[i].file_name ;
        *(c2 + lng) = '\0';
        for (j = 0; j < lng; j++, c++, c2++) {
@@ -515,7 +515,7 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
            *c2 = *c;
        }
        if (majus && minus)
-         strncpy(FGFDT[i].file_name,nom,lng);
+         strncpy(FGFDT[i].file_name,nom,lng);  // will be only statement left eventually
      }
   }
 /*
@@ -584,6 +584,10 @@ int c_fnom(int *iun,char *nom,char *type,int lrec)
         }
      ier = (*f90_open)(iun77, FGFDT[i].file_name, type, lrec77, rndflag77, unfflag77);   // callback function
   }
+// ADD CODE here to process FGFDT[i].attr.rsf (random segmented file type)
+//   else if (FGFDT[i].attr.rsf) {
+//     WHATEVER IS NEEDED for rsf files
+//   }
   else if (FGFDT[i].attr.stream || FGFDT[i].attr.std || FGFDT[i].attr.burp || FGFDT[i].attr.wa ||
           (FGFDT[i].attr.rnd && !FGFDT[i].attr.ftn) ) {
      ier = c_waopen2(liun);

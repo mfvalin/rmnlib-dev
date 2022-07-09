@@ -97,6 +97,7 @@ contains
     integer(C_INT), intent(IN), value :: iun
     character(len=*), intent(IN) :: options
     integer(C_INT) :: status
+    ! c_fstouv will need to process option 'RSF'
     status = c_fstouv(iun, F2C_TRIM(options))
   end function fstouv
 
@@ -110,17 +111,27 @@ contains
     status = fstouv(this%iun, options)
   end function ouviun
 
-  function ouvauto(this, name) result (status) ! calls fstouv
+  function ouvauto(this, name, options) result (status) ! calls fnom and fstouv
     implicit none
     class(fstd98), intent(INOUT) :: this
     character(len=*), intent(IN) :: name
+    character(len=*), intent(IN), optional :: options
     integer(C_INT) :: status
     integer(C_INT) :: iun
     integer, external :: fnom
+
     iun = 0
-    status = fnom(iun, trim(name),'STD+RND',0)
+    if(present(options)) then
+      status = fnom(iun, trim(name), trim(options), 0)
+    else
+      status = fnom(iun, trim(name),'STD+RND',0)
+    endif
     this%iun = iun
-    status = fstouv(this%iun, 'RND')
+    if(present(options)) then
+      status = fstouv(this%iun, trim(options))
+    else
+      status = fstouv(this%iun, 'RND')
+    endif
   end function ouvauto
 
 ! /***************************************************************************** 

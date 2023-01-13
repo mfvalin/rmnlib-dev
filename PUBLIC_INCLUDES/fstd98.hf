@@ -40,8 +40,9 @@ interface
 
   function fstlir(iun,f,ni,nj,nk,datev,etiket,ip1,ip2,ip3,typvar,nomvar) result(key)
     implicit none
-#define VarName     f
-#include <blind_argument.hf>
+#define IgnoreTypeKindRank     f
+#define ExtraAttributes
+#include <IgnoreTypeKindRank.hf>
     integer, intent(IN) :: iun
     integer, intent(OUT) :: ni, nj, nk
     character(len=*), intent(IN) :: typvar,nomvar,etiket
@@ -51,8 +52,9 @@ interface
 
   function fstluk(f, key, ni, nj, nk) result(status)
     implicit none
-#define VarName     f
-#include <blind_argument.hf>
+#define IgnoreTypeKindRank     f
+#define ExtraAttributes
+#include <IgnoreTypeKindRank.hf>
     integer, intent(IN) :: key
     integer, intent(OUT) :: ni, nj, nk
     integer :: status
@@ -60,8 +62,9 @@ interface
 
   subroutine fstecr(f,work,nbits,iun,dateo,deet,npas,ni,nj,nk,ip1,ip2,ip3,typvar,nomvar,etiket,grtyp,ig1,ig2,ig3,ig4,datyp,rewrite)
     implicit none
-#define VarName     f,work
-#include <blind_argument.hf>
+#define IgnoreTypeKindRank     f,work
+#define ExtraAttributes
+#include <IgnoreTypeKindRank.hf>
     integer, intent(IN) :: nbits,iun,dateo,deet,npas,ni,nj,nk,ip1,ip2,ip3
     character(len=*), intent(IN) :: typvar,nomvar,etiket,grtyp
     integer, intent(IN) :: ig1,ig2,ig3,ig4,datyp

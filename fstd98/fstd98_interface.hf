@@ -27,11 +27,11 @@ interface
 !  *                                                                           *
 !  *****************************************************************************/
   function fstouv(iun, options) result (status)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: iun
+    integer, intent(IN), value :: iun
     character(len=*), intent(IN) :: options
-    integer(C_INT) :: status
+    integer :: status
   end function fstouv
 ! /***************************************************************************** 
 !  *                              F S T F R M                                  *
@@ -45,10 +45,10 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstfrm(iun) result (status)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT) :: status
+    integer, intent(IN), value :: iun
+    integer :: status
   end function fstfrm
 ! /***************************************************************************** 
 !  *                              F S T N B R                                  *
@@ -62,10 +62,10 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstnbr(iun) result (nrec)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT) :: nrec
+    integer, intent(IN), value :: iun
+    integer :: nrec
   end function fstnbr
 ! /***************************************************************************** 
 !  *                              F S T N B R V                                *
@@ -80,10 +80,10 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstnbrv(iun) result (status)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT) :: status
+    integer, intent(IN), value :: iun
+    integer :: status
   end function fstnbrv
 ! /***************************************************************************** 
 !  *                                F S T C K P                                *
@@ -97,10 +97,10 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstckp(iun) result (status)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT) :: status
+    integer, intent(IN), value :: iun
+    integer :: status
   end function fstckp
 ! /***************************************************************************** 
 !  *                              F S T I N F                                  *
@@ -124,13 +124,13 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstinf(iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar) result(handle)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT), intent(IN)  :: datev, ip1, ip2, ip3
+    integer, intent(IN), value :: iun
+    integer, intent(OUT) :: ni, nj, nk
+    integer, intent(IN)  :: datev, ip1, ip2, ip3
     character(len=*), intent(IN) :: typvar, nomvar, etiket
-    integer(C_INT) :: handle
+    integer :: handle
     character(len=5)  :: nom
     character(len=3)  :: typ
     character(len=13) :: eti
@@ -150,11 +150,11 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstsui(iun, ni, nj, nk) result(handle)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT) :: handle
+    integer, intent(IN), value :: iun
+    integer, intent(OUT) :: ni, nj, nk
+    integer :: handle
   end function fstsui
 ! /***************************************************************************** 
 !  *                              F S T I N F X                                *
@@ -180,13 +180,13 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstinfx(start, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar) result(handle)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: iun, start
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT), intent(IN)  :: datev, ip1, ip2, ip3
+    integer, intent(IN), value :: iun, start
+    integer, intent(OUT) :: ni, nj, nk
+    integer, intent(IN)  :: datev, ip1, ip2, ip3
     character(len=*), intent(IN) :: typvar, nomvar, etiket
-    integer(C_INT) :: handle
+    integer :: handle
     character(len=5)  :: nom
     character(len=3)  :: typ
     character(len=13) :: eti
@@ -216,15 +216,15 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstinl(iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar, liste, infon, nmax) result(status)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT), intent(IN)  :: datev, ip1, ip2, ip3, nmax
+    integer, intent(IN), value :: iun
+    integer, intent(OUT) :: ni, nj, nk
+    integer, intent(IN)  :: datev, ip1, ip2, ip3, nmax
     character(len=*), intent(IN) :: typvar, nomvar, etiket
-    integer(C_INT), intent(OUT) :: infon
-    integer(C_INT), dimension(nmax), intent(OUT) :: liste
-    integer(C_INT) :: status
+    integer, intent(OUT) :: infon
+    integer, dimension(nmax), intent(OUT) :: liste
+    integer :: status
     character(len=5)  :: nom
     character(len=3)  :: typ
     character(len=13) :: eti
@@ -300,16 +300,16 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstlirx(field, start, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar) result(handle)
-    import :: C_INT
+    
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
-    integer(C_INT), intent(IN), value :: iun, start
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT), intent(IN)  :: datev, ip1, ip2, ip3
+    integer, intent(IN), value :: iun, start
+    integer, intent(OUT) :: ni, nj, nk
+    integer, intent(IN)  :: datev, ip1, ip2, ip3
     character(len=*), intent(IN) :: typvar, nomvar, etiket
-    integer(C_INT) :: handle
+    integer :: handle
   end function fstlirx
 ! /***************************************************************************** 
 !  *                              F S T L I R                                  *
@@ -334,16 +334,16 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstlir(field, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar) result(handle)
-    import :: C_INT
+    
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT), intent(IN)  :: datev, ip1, ip2, ip3
+    integer, intent(IN), value :: iun
+    integer, intent(OUT) :: ni, nj, nk
+    integer, intent(IN)  :: datev, ip1, ip2, ip3
     character(len=*), intent(IN) :: typvar, nomvar, etiket
-    integer(C_INT) :: handle
+    integer :: handle
   end function fstlir
 ! /***************************************************************************** 
 !  *                              F S T L I R _ S                              *
@@ -374,16 +374,16 @@ interface
 !                         char *f_typvar, char *f_nomvar,
 !                         int lng_string, F2Cl ll1, F2Cl ll2, F2Cl ll3)
   function fstlir_s(field, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar, lngstr) result(handle)
-    import :: C_INT
+    
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes ,target
 #include <IgnoreTypeKindRank.hf>
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT), intent(IN)  :: datev, ip1, ip2, ip3, lngstr
+    integer, intent(IN), value :: iun
+    integer, intent(OUT) :: ni, nj, nk
+    integer, intent(IN)  :: datev, ip1, ip2, ip3, lngstr
     character(len=*), intent(IN) :: typvar, nomvar, etiket
-    integer(C_INT) :: handle
+    integer :: handle
   end function fstlir_s
 ! /***************************************************************************** 
 !  *                            F S T L I S                                    *
@@ -404,14 +404,14 @@ interface
 ! ftnword f77name(fstlis)(word *field, ftnword *f_iun,
 !                         ftnword *f_ni, ftnword *f_nj, ftnword *f_nk)
   function fstlis(field, iun, ni, nj, nk) result(handle)
-    import :: C_INT
+    
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT) :: handle
+    integer, intent(IN), value :: iun
+    integer, intent(OUT) :: ni, nj, nk
+    integer :: handle
   end function fstlis
 ! /***************************************************************************** 
 !  *                             F S T L I C                                   *
@@ -443,17 +443,17 @@ interface
 !  *****************************************************************************/
   function fstlic(field, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar, &
                   ig1, ig2, ig3, ig4, grtyp) result(handle)
-    import :: C_INT
+    
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT), intent(IN)  :: datev, ip1, ip2, ip3
+    integer, intent(IN), value :: iun
+    integer, intent(OUT) :: ni, nj, nk
+    integer, intent(IN)  :: datev, ip1, ip2, ip3
     character(len=*), intent(IN) :: typvar, nomvar, etiket, grtyp
-    integer(C_INT), intent(IN)  :: ig1, ig2, ig3, ig4
-    integer(C_INT) :: handle
+    integer, intent(IN)  :: ig1, ig2, ig3, ig4
+    integer :: handle
   end function fstlic
 
 ! /***************************************************************************** 
@@ -492,14 +492,14 @@ interface
   subroutine fstecr(field, work, npak, iun, date, deet, npas, ni, nj, nk, &
                     ip1, ip2, ip3, typvar, nomvar, etiket, &
                     grtyp, ig1, ig2, ig3, ig4, datyp, rewrite)
-    import :: C_INT
+    
     implicit none
 #define IgnoreTypeKindRank field, work
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT), intent(IN) :: npak, date, deet, npas, ni, nj, nk, datyp, rewrite
-    integer(C_INT), intent(IN) :: ip1, ip2, ip3, ig1, ig2, ig3, ig4
+    integer, intent(IN), value :: iun
+    integer, intent(IN) :: npak, date, deet, npas, ni, nj, nk, datyp, rewrite
+    integer, intent(IN) :: ip1, ip2, ip3, ig1, ig2, ig3, ig4
     character(len=*), intent(IN) :: typvar, nomvar, etiket, grtyp
   end subroutine fstecr
 ! /***************************************************************************** 
@@ -538,16 +538,16 @@ interface
   function fstecr_s(field, work, npak, iun, date, deet, npas, ni, nj, nk, &
                     ip1, ip2, ip3, typvar, nomvar, etiket, &
                     grtyp, ig1, ig2, ig3, ig4, datyp, rewrite, lngstr) result(status)
-    import :: C_INT
+    
     implicit none
 #define IgnoreTypeKindRank field, work
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
-    integer(C_INT), intent(IN), value :: iun
-    integer(C_INT), intent(IN) :: npak, date, deet, npas, ni, nj, nk, datyp, rewrite
-    integer(C_INT), intent(IN) :: ip1, ip2, ip3, ig1, ig2, ig3, ig4, lngstr
+    integer, intent(IN), value :: iun
+    integer, intent(IN) :: npak, date, deet, npas, ni, nj, nk, datyp, rewrite
+    integer, intent(IN) :: ip1, ip2, ip3, ig1, ig2, ig3, ig4, lngstr
     character(len=*), intent(IN) :: typvar, nomvar, etiket, grtyp
-    integer(C_INT) :: status
+    integer :: status
   end function fstecr_s
 ! /***************************************************************************** 
 !  *                             F S T E F F                                   *
@@ -561,10 +561,10 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fsteff(handle) result (status)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: handle
-    integer(C_INT) :: status
+    integer, intent(IN), value :: handle
+    integer :: status
   end function fsteff
 
 ! /***************************************************************************** 
@@ -583,14 +583,14 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstluk(field, handle, ni, nj, nk) result(handle_out)
-    import :: C_INT
+    
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
 #include <IgnoreTypeKindRank.hf>
-    integer(C_INT), intent(IN), value :: handle
-    integer(C_INT), intent(OUT) :: ni, nj, nk
-    integer(C_INT) :: handle_out
+    integer, intent(IN), value :: handle
+    integer, intent(OUT) :: ni, nj, nk
+    integer :: handle_out
   end function fstluk
 
 ! /***************************************************************************** 
@@ -606,11 +606,11 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstlnk(link_list,n) result(status) bind(C,name='c_fstlnk')
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: n
-    integer(C_INT), dimension(n) :: link_list
-    integer(C_INT) :: status
+    integer, intent(IN), value :: n
+    integer, dimension(n) :: link_list
+    integer :: status
   end function fstlnk
 
 !  /***************************************************************************** 
@@ -626,9 +626,9 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstunl() result(status) bind(C,name='c_fstunl')
-    import :: C_INT
+    
     implicit none
-    integer(C_INT) :: status
+    integer :: status
   end function fstunl
 
 ! /***************************************************************************** 
@@ -648,10 +648,10 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fst_data_length(l) result(status)
-    import :: C_INT
+    
     implicit none
-    integer(C_INT), intent(IN), value :: l
-    integer(C_INT) :: status
+    integer, intent(IN), value :: l
+    integer :: status
   end function fst_data_length
 
 ! /***************************************************************************** 
@@ -675,12 +675,12 @@ interface
 ! int c_fstmsq(int iun, int *mip1, int *mip2, int *mip3, char *metiket,
 !                      int getmode)
   function fstmsq(iun, mip1, mpi2, mpi3, metiket, getmode) result(status)
-    import :: C_INT
+    
       implicit none
-      integer(C_INT), intent(IN), value :: iun, getmode
-      integer(C_INT), intent(INOUT) :: mip1, mpi2, mpi3
+      integer, intent(IN), value :: iun, getmode
+      integer, intent(INOUT) :: mip1, mpi2, mpi3
       character(len=*), intent(INOUT) :: metiket
-      integer(C_INT) :: status
+      integer :: status
   end function fstmsq
 ! /***************************************************************************** 
 !  *                             I P n _ A L L                                 *
@@ -696,25 +696,25 @@ interface
 !  *****************************************************************************/
 
     function ip1_all(level, vkind) result(ip_new)
-    import :: C_INT, C_FLOAT
+    
       implicit none
-      real(C_FLOAT), intent(IN), value :: level
-      integer(C_INT), intent(IN), value :: vkind
-      integer(C_INT) :: ip_new
+      real, intent(IN), value :: level
+      integer, intent(IN), value :: vkind
+      integer :: ip_new
     end function ip1_all
     function ip2_all(level, vkind) result(ip_new)
-    import :: C_INT, C_FLOAT
+    
       implicit none
-      real(C_FLOAT), intent(IN), value :: level
-      integer(C_INT), intent(IN), value :: vkind
-      integer(C_INT) :: ip_new
+      real, intent(IN), value :: level
+      integer, intent(IN), value :: vkind
+      integer :: ip_new
     end function ip2_all
     function ip3_all(level, vkind) result(ip_new)
-    import :: C_INT, C_FLOAT
+    
       implicit none
-      real(C_FLOAT), intent(IN), value :: level
-      integer(C_INT), intent(IN), value :: vkind
-      integer(C_INT) :: ip_new
+      real, intent(IN), value :: level
+      integer, intent(IN), value :: vkind
+      integer :: ip_new
     end function ip3_all
 
 ! /***************************************************************************** 
@@ -731,25 +731,25 @@ interface
 !  *****************************************************************************/
 
     function ip1_val(level, vkind) result(ip_new)
-    import :: C_INT, C_FLOAT
+    
       implicit none
-      real(C_FLOAT), intent(IN), value :: level
-      integer(C_INT), intent(IN), value :: vkind
-      integer(C_INT) :: ip_new
+      real, intent(IN), value :: level
+      integer, intent(IN), value :: vkind
+      integer :: ip_new
     end function ip1_val
     function ip2_val(level, vkind) result(ip_new)
-    import :: C_INT, C_FLOAT
+    
       implicit none
-      real(C_FLOAT), intent(IN), value :: level
-      integer(C_INT), intent(IN), value :: vkind
-      integer(C_INT) :: ip_new
+      real, intent(IN), value :: level
+      integer, intent(IN), value :: vkind
+      integer :: ip_new
     end function ip2_val
     function ip3_val(level, vkind) result(ip_new)
-    import :: C_INT, C_FLOAT
+    
       implicit none
-      real(C_FLOAT), intent(IN), value :: level
-      integer(C_INT), intent(IN), value :: vkind
-      integer(C_INT) :: ip_new
+      real, intent(IN), value :: level
+      integer, intent(IN), value :: vkind
+      integer :: ip_new
     end function ip3_val
 
 !  /*****************************************************************************
@@ -767,11 +767,11 @@ interface
 !  *****************************************************************************/
 
     function fstopi(option, val, getmode) result(status)
-    import :: C_INT
+    
       implicit none
       character(len=*), intent(IN) :: option
-      integer(C_INT), intent(IN), value :: val, getmode
-      integer(C_INT) :: status
+      integer, intent(IN), value :: val, getmode
+      integer :: status
     end function fstopi
 
 !  /***************************************************************************** 
@@ -789,11 +789,11 @@ interface
 !  *****************************************************************************/
 
     function fstopl(option, val, getmode) result(status)
-    import :: C_INT
+    
       implicit none
       character(len=*), intent(IN) :: option
-      integer(C_INT), intent(IN), value :: val, getmode
-      integer(C_INT) :: status
+      integer, intent(IN), value :: val, getmode
+      integer :: status
     end function fstopl
 
 !  /***************************************************************************** 
@@ -811,12 +811,12 @@ interface
 !  *****************************************************************************/
 
     function fstopr(option, val, getmode) result(status)
-    import :: C_INT, C_FLOAT
+    
       implicit none
       character(len=*), intent(IN) :: option
-      real(C_FLOAT), intent(IN), value :: val
-      integer(C_INT), intent(IN), value :: getmode
-      integer(C_INT) :: status
+      real, intent(IN), value :: val
+      integer, intent(IN), value :: getmode
+      integer :: status
     end function fstopr
 
 ! /*****************************************************************************
@@ -834,12 +834,12 @@ interface
 !  *****************************************************************************/
 
     function fstopc(option, val, getmode) result(status)
-    import :: C_INT
+    
       implicit none
       character(len=*), intent(IN) :: option
       character(len=*), intent(IN) :: val
-      integer(C_INT), intent(IN), value :: getmode
-      integer(C_INT) :: status
+      integer, intent(IN), value :: getmode
+      integer :: status
     end function fstopc
 
 !  /*****************************************************************************
@@ -854,10 +854,10 @@ interface
 !  *                                                                           *
 !  *****************************************************************************/
     function fstcheck(path) result(status)
-    import :: C_INT
+    
       implicit none
       character(len=*), intent(IN) :: path
-      integer(C_INT) :: status
+      integer :: status
     end function fstcheck
 
 !  /***************************************************************************** 
@@ -882,10 +882,10 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
     function fstrwd(iun) result(status)
-    import :: C_INT
+    
       implicit none
-      integer(C_INT), intent(IN), value :: iun
-      integer(C_INT) :: status
+      integer, intent(IN), value :: iun
+      integer :: status
     end function fstrwd
 !  /***************************************************************************** 
 !  *                                F S T S K P                                *
@@ -901,10 +901,10 @@ interface
 !  *****************************************************************************/
 
     function fstskp(iun, nrec) result(status)
-    import :: C_INT
+    
       implicit none
-      integer(C_INT), intent(IN), value :: iun, nrec
-      integer(C_INT) :: status
+      integer, intent(IN), value :: iun, nrec
+      integer :: status
     end function fstskp
 ! /***************************************************************************** 
 !  *                           F S T  _ V E R S I O N                          *
@@ -915,9 +915,9 @@ interface
 !  *****************************************************************************/
 
     function fst_version() result(version)
-    import :: C_INT
+    
       implicit none
-      integer(C_INT) :: version
+      integer :: version
     end function fst_version
 
 ! /***************************************************************************** 
@@ -934,11 +934,11 @@ interface
 !  *****************************************************************************/
 
     function fstvoi(iun, options) result(status)
-    import :: C_INT
+    
       implicit none
-      integer(C_INT), intent(IN), value :: iun
+      integer, intent(IN), value :: iun
       character(len=*), intent(IN) :: options
-      integer(C_INT) :: status
+      integer :: status
     end function fstvoi
 !  /***************************************************************************** 
 !  *                             F S T W E O                                   *
@@ -954,10 +954,10 @@ interface
 !  *****************************************************************************/
 
     function fstweo(iun, level) result(status)
-    import :: C_INT
+    
       implicit none
-      integer(C_INT), intent(IN), value :: iun, level
-      integer(C_INT) :: status
+      integer, intent(IN), value :: iun, level
+      integer :: status
     end function fstweo
 ! /***************************************************************************** 
 !  *                             F S T A P P                                   *
@@ -972,10 +972,10 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
     function fstapp(iun, option) result(status)
-    import :: C_INT
+    
       implicit none
-      integer(C_INT), intent(IN), value :: iun
+      integer, intent(IN), value :: iun
       character(len=*), intent(IN) :: option
-      integer(C_INT) :: status
+      integer :: status
     end function fstapp
 end interface

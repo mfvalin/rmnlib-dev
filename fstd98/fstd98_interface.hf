@@ -13,6 +13,18 @@
 ! Author:
 !     M. Valin,   Recherche en Prevision Numerique, 2021
 !
+! interfaces to the fstxxx and c_fstxxx entry points in librmn
+! MUTUALLY EXCLUSIVE with : use fstd98_mod
+!
+! include interface to the c_fstxxx functions
+!
+#include <c_fstd98_interface.hf>
+!
+! do not include the interface to the Fortran functions if C_INTERFACE_ONLY is defined
+! (used by fstd98_mod.F90 to avoid duplicate interfaces)
+!
+#if ! defined(C_INTERFACE_ONLY)
+
 interface
 ! /*****************************************************************************
 !  *                              F S T O U V                                  *
@@ -27,7 +39,7 @@ interface
 !  *                                                                           *
 !  *****************************************************************************/
   function fstouv(iun, options) result (status)
-    
+
     implicit none
     integer, intent(IN), value :: iun
     character(len=*), intent(IN) :: options
@@ -45,7 +57,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstfrm(iun) result (status)
-    
+
     implicit none
     integer, intent(IN), value :: iun
     integer :: status
@@ -62,7 +74,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstnbr(iun) result (nrec)
-    
+
     implicit none
     integer, intent(IN), value :: iun
     integer :: nrec
@@ -80,7 +92,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstnbrv(iun) result (status)
-    
+
     implicit none
     integer, intent(IN), value :: iun
     integer :: status
@@ -97,7 +109,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstckp(iun) result (status)
-    
+
     implicit none
     integer, intent(IN), value :: iun
     integer :: status
@@ -124,7 +136,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstinf(iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar) result(handle)
-    
+
     implicit none
     integer, intent(IN), value :: iun
     integer, intent(OUT) :: ni, nj, nk
@@ -150,7 +162,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstsui(iun, ni, nj, nk) result(handle)
-    
+
     implicit none
     integer, intent(IN), value :: iun
     integer, intent(OUT) :: ni, nj, nk
@@ -180,7 +192,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstinfx(start, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar) result(handle)
-    
+
     implicit none
     integer, intent(IN), value :: iun, start
     integer, intent(OUT) :: ni, nj, nk
@@ -216,7 +228,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstinl(iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar, liste, infon, nmax) result(status)
-    
+
     implicit none
     integer, intent(IN), value :: iun
     integer, intent(OUT) :: ni, nj, nk
@@ -300,7 +312,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstlirx(field, start, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar) result(handle)
-    
+
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
@@ -334,7 +346,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstlir(field, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar) result(handle)
-    
+
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
@@ -374,7 +386,7 @@ interface
 !                         char *f_typvar, char *f_nomvar,
 !                         int lng_string, F2Cl ll1, F2Cl ll2, F2Cl ll3)
   function fstlir_s(field, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar, lngstr) result(handle)
-    
+
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes ,target
@@ -404,7 +416,7 @@ interface
 ! ftnword f77name(fstlis)(word *field, ftnword *f_iun,
 !                         ftnword *f_ni, ftnword *f_nj, ftnword *f_nk)
   function fstlis(field, iun, ni, nj, nk) result(handle)
-    
+
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
@@ -443,7 +455,7 @@ interface
 !  *****************************************************************************/
   function fstlic(field, iun, ni, nj, nk, datev, etiket, ip1, ip2, ip3, typvar, nomvar, &
                   ig1, ig2, ig3, ig4, grtyp) result(handle)
-    
+
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
@@ -492,7 +504,7 @@ interface
   subroutine fstecr(field, work, npak, iun, date, deet, npas, ni, nj, nk, &
                     ip1, ip2, ip3, typvar, nomvar, etiket, &
                     grtyp, ig1, ig2, ig3, ig4, datyp, rewrite)
-    
+
     implicit none
 #define IgnoreTypeKindRank field, work
 #define ExtraAttributes 
@@ -538,7 +550,7 @@ interface
   function fstecr_s(field, work, npak, iun, date, deet, npas, ni, nj, nk, &
                     ip1, ip2, ip3, typvar, nomvar, etiket, &
                     grtyp, ig1, ig2, ig3, ig4, datyp, rewrite, lngstr) result(status)
-    
+
     implicit none
 #define IgnoreTypeKindRank field, work
 #define ExtraAttributes 
@@ -561,7 +573,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fsteff(handle) result (status)
-    
+
     implicit none
     integer, intent(IN), value :: handle
     integer :: status
@@ -583,7 +595,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstluk(field, handle, ni, nj, nk) result(handle_out)
-    
+
     implicit none
 #define IgnoreTypeKindRank field
 #define ExtraAttributes 
@@ -606,7 +618,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstlnk(link_list,n) result(status) bind(C,name='c_fstlnk')
-    
+
     implicit none
     integer, intent(IN), value :: n
     integer, dimension(n) :: link_list
@@ -626,7 +638,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fstunl() result(status) bind(C,name='c_fstunl')
-    
+
     implicit none
     integer :: status
   end function fstunl
@@ -648,7 +660,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
   function fst_data_length(l) result(status)
-    
+
     implicit none
     integer, intent(IN), value :: l
     integer :: status
@@ -675,7 +687,7 @@ interface
 ! int c_fstmsq(int iun, int *mip1, int *mip2, int *mip3, char *metiket,
 !                      int getmode)
   function fstmsq(iun, mip1, mpi2, mpi3, metiket, getmode) result(status)
-    
+
       implicit none
       integer, intent(IN), value :: iun, getmode
       integer, intent(INOUT) :: mip1, mpi2, mpi3
@@ -696,21 +708,21 @@ interface
 !  *****************************************************************************/
 
     function ip1_all(level, vkind) result(ip_new)
-    
+
       implicit none
       real, intent(IN), value :: level
       integer, intent(IN), value :: vkind
       integer :: ip_new
     end function ip1_all
     function ip2_all(level, vkind) result(ip_new)
-    
+
       implicit none
       real, intent(IN), value :: level
       integer, intent(IN), value :: vkind
       integer :: ip_new
     end function ip2_all
     function ip3_all(level, vkind) result(ip_new)
-    
+
       implicit none
       real, intent(IN), value :: level
       integer, intent(IN), value :: vkind
@@ -731,116 +743,26 @@ interface
 !  *****************************************************************************/
 
     function ip1_val(level, vkind) result(ip_new)
-    
+
       implicit none
       real, intent(IN), value :: level
       integer, intent(IN), value :: vkind
       integer :: ip_new
     end function ip1_val
     function ip2_val(level, vkind) result(ip_new)
-    
+
       implicit none
       real, intent(IN), value :: level
       integer, intent(IN), value :: vkind
       integer :: ip_new
     end function ip2_val
     function ip3_val(level, vkind) result(ip_new)
-    
+
       implicit none
       real, intent(IN), value :: level
       integer, intent(IN), value :: vkind
       integer :: ip_new
     end function ip3_val
-
-!  /*****************************************************************************
-!  *                              F S T O P I                                  *
-!  *                                                                           * 
-!  *Object                                                                     * 
-!  *   Print out or set a fstd or xdf global variable option.                  *
-!  *                                                                           * 
-!  *Arguments                                                                  * 
-!  *                                                                           * 
-!  *   IN     option   option name to be set/printed                           * 
-!  *   IN     value    option value                                            * 
-!  *   IN     getmode  logical (1: get option, 0: set option)                  * 
-!  *                                                                           * 
-!  *****************************************************************************/
-
-    function fstopi(option, val, getmode) result(status)
-    
-      implicit none
-      character(len=*), intent(IN) :: option
-      integer, intent(IN), value :: val, getmode
-      integer :: status
-    end function fstopi
-
-!  /***************************************************************************** 
-!  *                              F S T O P L                                  *
-!  *                                                                           * 
-!  *Object                                                                     * 
-!  *   Print out or set a fstd or xdf global variable option.                  *
-!  *                                                                           * 
-!  *Arguments                                                                  * 
-!  *                                                                           * 
-!  *   IN     option   option name to be set/printed                           * 
-!  *   IN     value    option value                                            * 
-!  *   IN     getmode  logical (1: get option, 0: set option)                  * 
-!  *                                                                           * 
-!  *****************************************************************************/
-
-    function fstopl(option, val, getmode) result(status)
-    
-      implicit none
-      character(len=*), intent(IN) :: option
-      integer, intent(IN), value :: val, getmode
-      integer :: status
-    end function fstopl
-
-!  /***************************************************************************** 
-!  *                              F S T O P R                                  *
-!  *                                                                           * 
-!  *Object                                                                     * 
-!  *   Print out or set a fstd or xdf global variable option.                  *
-!  *                                                                           * 
-!  *Arguments                                                                  * 
-!  *                                                                           * 
-!  *   IN     option   option name to be set/printed                           * 
-!  *   IN     value    option value                                            * 
-!  *   IN     getmode  logical (1: get option, 0: set option)                  * 
-!  *                                                                           * 
-!  *****************************************************************************/
-
-    function fstopr(option, val, getmode) result(status)
-    
-      implicit none
-      character(len=*), intent(IN) :: option
-      real, intent(IN), value :: val
-      integer, intent(IN), value :: getmode
-      integer :: status
-    end function fstopr
-
-! /*****************************************************************************
-!  *                              F S T O P C                                  *
-!  *                                                                           *
-!  *Object                                                                     *
-!  *   Print out or set a fstd or xdf global variable option.                  *
-!  *                                                                           *
-!  *Arguments                                                                  *
-!  *                                                                           *
-!  *   IN     option   option name to be set/printed                           *
-!  *   IN     value    option value                                            *
-!  *   IN     getmode  logical (1: get option, 0: set option)                  *
-!  *                                                                           *
-!  *****************************************************************************/
-
-    function fstopc(option, val, getmode) result(status)
-    
-      implicit none
-      character(len=*), intent(IN) :: option
-      character(len=*), intent(IN) :: val
-      integer, intent(IN), value :: getmode
-      integer :: status
-    end function fstopc
 
 !  /*****************************************************************************
 !  *                              F S T C H E C K                              *
@@ -854,7 +776,7 @@ interface
 !  *                                                                           *
 !  *****************************************************************************/
     function fstcheck(path) result(status)
-    
+
       implicit none
       character(len=*), intent(IN) :: path
       integer :: status
@@ -882,7 +804,7 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
     function fstrwd(iun) result(status)
-    
+
       implicit none
       integer, intent(IN), value :: iun
       integer :: status
@@ -901,7 +823,7 @@ interface
 !  *****************************************************************************/
 
     function fstskp(iun, nrec) result(status)
-    
+
       implicit none
       integer, intent(IN), value :: iun, nrec
       integer :: status
@@ -915,7 +837,7 @@ interface
 !  *****************************************************************************/
 
     function fst_version() result(version)
-    
+
       implicit none
       integer :: version
     end function fst_version
@@ -934,7 +856,7 @@ interface
 !  *****************************************************************************/
 
     function fstvoi(iun, options) result(status)
-    
+
       implicit none
       integer, intent(IN), value :: iun
       character(len=*), intent(IN) :: options
@@ -954,7 +876,7 @@ interface
 !  *****************************************************************************/
 
     function fstweo(iun, level) result(status)
-    
+
       implicit none
       integer, intent(IN), value :: iun, level
       integer :: status
@@ -972,10 +894,107 @@ interface
 !  *                                                                           * 
 !  *****************************************************************************/
     function fstapp(iun, option) result(status)
-    
+
       implicit none
       integer, intent(IN), value :: iun
       character(len=*), intent(IN) :: option
       integer :: status
     end function fstapp
 end interface
+
+! generic interface for options
+interface fstoption
+
+!  /*****************************************************************************
+!  *                              F S T O P I                                  *
+!  *                                                                           * 
+!  *Object                                                                     * 
+!  *   Print out or set a fstd or xdf global variable option.                  *
+!  *                                                                           * 
+!  *Arguments                                                                  * 
+!  *                                                                           * 
+!  *   IN     option   option name to be set/printed                           * 
+!  *   IN     value    option value                                            * 
+!  *   IN     getmode  logical (1: get option, 0: set option)                  * 
+!  *                                                                           * 
+!  *****************************************************************************/
+
+    function fstopi(option, val, getmode) result(status)
+
+      implicit none
+      character(len=*), intent(IN) :: option
+      integer, intent(IN), value :: val, getmode
+      integer :: status
+    end function fstopi
+
+!  /***************************************************************************** 
+!  *                              F S T O P L                                  *
+!  *                                                                           * 
+!  *Object                                                                     * 
+!  *   Print out or set a fstd or xdf global variable option.                  *
+!  *                                                                           * 
+!  *Arguments                                                                  * 
+!  *                                                                           * 
+!  *   IN     option   option name to be set/printed                           * 
+!  *   IN     value    option value                                            * 
+!  *   IN     getmode  logical (1: get option, 0: set option)                  * 
+!  *                                                                           * 
+!  *****************************************************************************/
+
+    function fstopl(option, val, getmode) result(status)
+
+      implicit none
+      character(len=*), intent(IN) :: option
+      logical, intent(IN), value :: val
+      integer, intent(IN), value :: getmode
+      integer :: status
+    end function fstopl
+
+!  /***************************************************************************** 
+!  *                              F S T O P R                                  *
+!  *                                                                           * 
+!  *Object                                                                     * 
+!  *   Print out or set a fstd or xdf global variable option.                  *
+!  *                                                                           * 
+!  *Arguments                                                                  * 
+!  *                                                                           * 
+!  *   IN     option   option name to be set/printed                           * 
+!  *   IN     value    option value                                            * 
+!  *   IN     getmode  logical (1: get option, 0: set option)                  * 
+!  *                                                                           * 
+!  *****************************************************************************/
+
+    function fstopr(option, val, getmode) result(status)
+
+      implicit none
+      character(len=*), intent(IN) :: option
+      real, intent(IN), value :: val
+      integer, intent(IN), value :: getmode
+      integer :: status
+    end function fstopr
+
+! /*****************************************************************************
+!  *                              F S T O P C                                  *
+!  *                                                                           *
+!  *Object                                                                     *
+!  *   Print out or set a fstd or xdf global variable option.                  *
+!  *                                                                           *
+!  *Arguments                                                                  *
+!  *                                                                           *
+!  *   IN     option   option name to be set/printed                           *
+!  *   IN     value    option value                                            *
+!  *   IN     getmode  logical (1: get option, 0: set option)                  *
+!  *                                                                           *
+!  *****************************************************************************/
+
+    function fstopc(option, val, getmode) result(status)
+
+      implicit none
+      character(len=*), intent(IN) :: option
+      character(len=*), intent(IN) :: val
+      integer, intent(IN), value :: getmode
+      integer :: status
+    end function fstopc
+end interface
+
+#endif

@@ -13,14 +13,28 @@
 ! Author:
 !     M. Valin,   Recherche en Prevision Numerique, 2021
 !
-
+! to get in Fortran
+!  - the fstdxxx and c_fstdxxx interfaces
+!  - the fstd98 user defined type and associated type bound procedures
+!
+! use fstd98_mod
+!
+! WARNING : this is MUTUALLY EXCLUSIVE with
+! #include <fstd98_interface.hf>
+! (that will only get the direct fstdxxx and c_fstdxxx interfaces)
+!
+! use fstd98_mod will cause the direct fstxxx entry points from librmn to be ignored
+! and use instead the equivalent procedures from the module
+!
 #include <f_c_string_macros.hf>
 
 module fstd98_mod
   use ISO_C_BINDING
   use f_c_strings_mod
-  use c_fstd98_mod
   implicit none
+! DO NOT GET the fstxxx interfaces, the fstxxx functions are defined in this module
+#define C_INTERFACE_ONLY
+#include <fstd98_interface.hf>
 
   type :: fstd98
     integer     :: iun = -1                  ! Fortran unit number
@@ -77,7 +91,7 @@ module fstd98_mod
   integer :: link_n = 0
   integer, dimension(:), pointer :: links_list => NULL()
 
-
+! fstxxx functions/subroutines and fstd98 type bound procedures
 contains
 
 ! /*****************************************************************************
@@ -1403,9 +1417,13 @@ contains
     function fstopl(option, val, getmode) result(status)
       implicit none
       character(len=*), intent(IN) :: option
-      integer(C_INT), intent(IN), value :: val, getmode
+      logical, intent(IN), value :: val
+      integer(C_INT), intent(IN), value :: getmode
       integer(C_INT) :: status
-      status = c_fstopl(F2C_TRIM(option), val, getmode)
+      integer(C_INT) :: val_int
+      val_int = 0
+      if(val) val_int = 1
+      status = c_fstopl(F2C_TRIM(option), val_int, getmode)
     end function fstopl
 
 !  /***************************************************************************** 

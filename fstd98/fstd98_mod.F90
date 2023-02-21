@@ -1208,14 +1208,12 @@ contains
     integer(C_INT), intent(IN), value :: n
     integer(C_INT), dimension(n) :: link_list
     integer(C_INT) :: status
-    if(associated(links_list)) then  ! ERROR
-      status = 1
-    else
-      allocate(links_list(n))
-      link_n = n
-      links_list(1:n) = link_list(1:n)
-      status = c_xdflnk(links_list, link_n)
-    endif
+    integer(C_INT), dimension(:) :: links_list
+    integer(C_INT) :: link_n
+    allocate(links_list(n))
+    link_n = n
+    links_list(1:n) = link_list(1:n)
+    status = c_xdflnk(links_list, link_n)
   end function fstlnk
 
 !  /***************************************************************************** 
@@ -1230,16 +1228,12 @@ contains
 !  *  IN  n       number of files to link                                      * 
 !  *                                                                           * 
 !  *****************************************************************************/
-  function fstunl() result(status) bind(C,name='c_fstunl')
+  function fstunl(link_list,n) result(status) bind(C,name='c_fstunl')
     implicit none
+    integer(C_INT), intent(IN), value :: n
+    integer(C_INT), dimension(n) :: link_list
     integer(C_INT) :: status
-    if(associated(links_list)) then
-      status = c_xdfunl(links_list,link_n)
-      deallocate(links_list)
-      link_n = 0
-    else
-      status = 1
-    endif
+    status = c_xdfunl(link_list,n)
   end function fstunl
 
 ! /***************************************************************************** 

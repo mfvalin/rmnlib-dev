@@ -34,14 +34,21 @@ contains
 !  *  IN  options random or sequential access                                  *
 !  *                                                                           *
 !  *****************************************************************************/
-  module procedure fstouv_iun
+  module function fstouv_iun(iun, options) result (status)
     implicit none
+    integer(C_INT), intent(IN) :: iun
+    character(len=*), intent(IN) :: options
+    integer(C_INT) :: status
     ! c_fstouv will need to process option 'RSF'
     status = c_fstouv(iun, trim(options)//achar(0))
-  end procedure
+  end function
 
-  module procedure fstouv_auto ! calls fnom and fstouv
+  module function fstouv_auto(name, iun, options) result (status) ! calls fnom and fstouv
     implicit none
+    integer(C_INT), intent(OUT) :: iun
+    character(len=*), intent(IN) :: name
+    character(len=*), intent(IN), optional :: options
+    integer(C_INT) :: status
     integer, external :: fnom
 
     iun = 0
@@ -52,16 +59,24 @@ contains
       status = fnom(iun, trim(name),'STD+RND',0)
       status = fstouv_iun(iun, 'RND')
     endif
-  end procedure
+  end function
 
-  module procedure ouviun
+  module function ouviun(this, iun, options) result (status) ! calls fstouv
     implicit none
+    class(fstd98), intent(INOUT) :: this
+    integer(C_INT), intent(IN) :: iun
+    character(len=*), intent(IN) :: options
+    integer(C_INT) :: status
     this%iun = iun
     status = fstouv(iun, options)
-  end procedure
+  end function
 
-  module procedure ouvauto
+  module function ouvauto(this, name, options) result (status) ! calls fnom and fstouv
     implicit none
+    class(fstd98), intent(INOUT) :: this
+    character(len=*), intent(IN) :: name
+    character(len=*), intent(IN), optional :: options
+    integer(C_INT) :: status
     integer(C_INT) :: iun
     integer, external :: fnom
 
@@ -74,7 +89,7 @@ contains
       status = fstouv(iun, 'RND')
     endif
     this%iun = iun
-  end procedure
+  end function
 
 ! /***************************************************************************** 
 !  *                              F S T F R M                                  *

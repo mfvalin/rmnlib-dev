@@ -1208,7 +1208,7 @@ contains
     integer(C_INT), intent(IN), value :: n
     integer(C_INT), dimension(n) :: link_list
     integer(C_INT) :: status
-    integer(C_INT), dimension(:) :: links_list
+    integer(C_INT), dimension(:), allocatable :: links_list
     integer(C_INT) :: link_n
     allocate(links_list(n))
     link_n = n

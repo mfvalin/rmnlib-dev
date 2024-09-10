@@ -1,4 +1,5 @@
 
+#include <sys/param.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
@@ -54,5 +55,6 @@ int main(){
   printf("integer, parameter :: RTLD_NOW = %d\n",RTLD_NOW);
   printf("integer, parameter :: RTLD_GLOBAL = %d\n",RTLD_GLOBAL);
   printf("integer, parameter :: RTLD_LOCAL = %d\n",RTLD_LOCAL);
+  printf("integer, parameter :: MAXPATHLEN = %d\n",MAXPATHLEN);
   return 0;
 }

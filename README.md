@@ -1,2 +1,4 @@
 # rmnlib-dev
-new code for librmn
+potential new code for librmn
+
+librmn up to date version : https://github.com/ECCC-ASTD-MRD/librmn
